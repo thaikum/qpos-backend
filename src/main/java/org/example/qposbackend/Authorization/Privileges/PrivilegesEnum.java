@@ -1,0 +1,41 @@
+package org.example.qposbackend.Authorization.Privileges;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public enum PrivilegesEnum {
+    // ======================= inventory =============================
+    VIEW_INVENTORY("VIEW INVENTORY RECORDS", "INVENTORY"),
+    UPDATE_INVENTORY("UPDATE INVENTORY RECORD", "INVENTORY"),
+    ADD_INVENTORY_ITEM("ADD INVENTORY ITEM", "INVENTORY"),
+
+    //===================== stock ====================================
+    ADD_STOCK("ADD STOCK", "STOCK"),
+    VIEW_STOCK("VIEW STOCK", "STOCK"),
+    UPDATE_STOCK("UPDATE EXISTING STOCK", "STOCK"),
+    VIEW_BUYING_PRICE("VIEW ITEM BUYING PRICE", "STOCK"),
+    UPDATE_SELLING_PRICE("UPDATE ITEM SELLING PRICE", "STOCK"),
+    SET_DISCOUNT("SET DISCOUNT ON ITEM", "STOCK"),
+
+    //========================= sales =================================
+    MAKE_SALE("MAKE SALE", "SALES"),
+    CANCEL_SALE("CANCEL UNPAID SALE", "SALES"),
+    UPDATE_SALE("UPDATE SALE ITEMS", "SALES"),
+    VIEW_HISTORICAL_SALES("VIEW HISTORICAL SALES", "SALES"),
+    HANDLE_RETURNED_GOODS("HANDLE RETURNED GOODS", "SALES"),
+    APPLY_DISCOUNT("OFFER DISCOUNTS", "SALES"),
+
+    //======================== ROLES ==================================
+    VIEW_ROLES("VIEW USER GROUPS", "ROLES"),
+    ADD_ROLE("ADD USER GROUP", "ROLES"),
+
+    //======================== USERS =================================
+    VIEW_USERS("VIEW USERS", "USERS"),
+    ADD_USER("ADD USER", "USERS");
+
+
+    private final String displayName;
+    private final String category;
+}
