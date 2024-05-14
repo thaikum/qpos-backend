@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.DTOs.DataResponse;
+import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Item.ItemService;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ public class InventoryItemController {
     @GetMapping
     public ResponseEntity<DataResponse> getInventoryItems() {
         try {
-            return ResponseEntity.ok(new DataResponse(inventoryRepository.findAll(), null));
+            return ResponseEntity.ok(new DataResponse(inventoryRepository.findInventoryItemByIsDeleted(false), null));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DataResponse(null, ex.getMessage()));
         }
@@ -33,9 +34,8 @@ public class InventoryItemController {
 
     @PostMapping
     public ResponseEntity<DataResponse> createInventoryItems(@RequestParam("inventoryEntry") String formData,
-                                                             @RequestPart("image") Optional<MultipartFile> image){
-
-        try{
+                                                             @RequestPart("image") Optional<MultipartFile> image) {
+        try {
             ObjectMapper objectMapper = new ObjectMapper();
             InventoryItem inventoryItem = objectMapper.readValue(formData, InventoryItem.class);
 
@@ -44,14 +44,14 @@ public class InventoryItemController {
             inventoryRepository.save(inventoryItem);
 
             return ResponseEntity.ok(new DataResponse(null, "Inventory item created successfully"));
-        }catch (Exception ex){
+        } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new DataResponse(null, ex.getMessage()));
         }
-
     }
 
-    @PostMapping("item")
-    public ResponseEntity<DataResponse> createItem(@RequestBody Item item){
-        return ResponseEntity.ok(new DataResponse(null, "Item created successfully"));
+    @PutMapping("delete")
+    public ResponseEntity<MessageResponse> deleteInventoryItem(@RequestBody InventoryItem inventoryItem) {
+        inventoryRepository.markDelete(inventoryItem.getId());
+        return ResponseEntity.ok(new MessageResponse("Item: " + inventoryItem.getItem().getName() + " deleted successfully"));
     }
 }

@@ -18,6 +18,9 @@ public class PrivilegeController {
 
     @GetMapping
     private ResponseEntity<DataResponse> getPrivileges() {
-        return ResponseEntity.ok(new DataResponse(privilegeRepository.findAll().stream().map(privilege -> new PrivilegeDTO(privilege.getPrivilege().name(), privilege.getPrivilege().getDisplayName(), privilege.getPrivilege().getCategory())), null));
+        return ResponseEntity.ok(new DataResponse(privilegeRepository.findAll().stream().map(p -> {
+            PrivilegesEnum privilege = PrivilegesEnum.valueOf(p.getPrivilege());
+            return new PrivilegeDTO(privilege.name(), privilege.getDisplayName(), privilege.getCategory());
+        }), null));
     }
 }

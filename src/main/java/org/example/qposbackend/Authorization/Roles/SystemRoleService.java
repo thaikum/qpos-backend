@@ -3,9 +3,11 @@ package org.example.qposbackend.Authorization.Roles;
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Authorization.Privileges.Privilege;
 import org.example.qposbackend.Authorization.Privileges.PrivilegeRepository;
+import org.example.qposbackend.Authorization.Privileges.PrivilegesEnum;
 import org.example.qposbackend.DTOs.PrivilegeDTO;
 import org.example.qposbackend.DTOs.RoleDTO;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import javax.swing.text.html.Option;
@@ -22,6 +24,7 @@ public class SystemRoleService {
     private final PrivilegeRepository privilegeRepository;
 
     @Bean
+    @DependsOn("privilegesInitializer")
     private void initializeRoles() {
         Optional<SystemRole> optionalSystemRole = systemRoleRepository.findById("ADMIN");
         SystemRole systemRole;
@@ -29,6 +32,7 @@ public class SystemRoleService {
         systemRole = optionalSystemRole.orElseGet(() -> SystemRole.builder()
                 .name("ADMIN")
                 .build());
+
         Set<Privilege> privilegeSet = new HashSet<>(privilegeRepository.findAll());
 
         systemRole.setPrivileges(privilegeSet);
@@ -38,8 +42,11 @@ public class SystemRoleService {
 
     public List<RoleDTO> getRoles() {
         return systemRoleRepository.findAll().stream().map(role ->
-                new RoleDTO(role.getName(), role.getPrivileges().stream().map(privilege ->
-                        new PrivilegeDTO(privilege.getPrivilege().name(), privilege.getPrivilege().getDisplayName(), privilege.getPrivilege().getCategory())
+                new RoleDTO(role.getName(), role.getPrivileges().stream().map(p ->
+                        {
+                            PrivilegesEnum privilege = PrivilegesEnum.valueOf(p.getPrivilege());
+                            return new PrivilegeDTO(privilege.name(), privilege.getDisplayName(), privilege.getCategory());
+                        }
                 ).collect(Collectors.toList()))
         ).collect(Collectors.toList());
     }

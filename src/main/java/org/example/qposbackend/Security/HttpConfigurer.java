@@ -60,6 +60,7 @@ public class HttpConfigurer {
                         //================================= INVENTORY ===========================================
                         .requestMatchers(HttpMethod.GET, "inventory").hasAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
                         .requestMatchers(HttpMethod.POST, "inventory").hasAuthority(PrivilegesEnum.ADD_INVENTORY_ITEM.name())
+                        .requestMatchers(HttpMethod.PUT, "inventory/delete").hasAuthority(PrivilegesEnum.DELETE_INVENTORY_ITEM.name())
 
                         //================================= ROLES ===============================================
                         .requestMatchers(HttpMethod.GET, "roles", "privileges").hasAuthority(PrivilegesEnum.VIEW_ROLES.name())

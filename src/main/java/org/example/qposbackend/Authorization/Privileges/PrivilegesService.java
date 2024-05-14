@@ -1,12 +1,8 @@
-package org.example.qposbackend;
+package org.example.qposbackend.Authorization.Privileges;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.qposbackend.Authorization.Privileges.Privilege;
-import org.example.qposbackend.Authorization.Privileges.PrivilegeRepository;
-import org.example.qposbackend.Authorization.Privileges.PrivilegesEnum;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -19,16 +15,16 @@ import java.util.stream.Collectors;
 public class PrivilegesService {
     private final PrivilegeRepository privilegeRepository;
 
-    @Bean
+    @Bean("privilegesInitializer")
     private void initializePrivileges() {
         Set<Privilege> newPrivileges = new HashSet<>();
         Set<String> oldPrivileges = privilegeRepository.findAll().stream()
-                .map(privilege -> privilege.getPrivilege().name()).collect(Collectors.toSet());
+                .map(Privilege::getPrivilege).collect(Collectors.toSet());
 
-        for (PrivilegesEnum priv : PrivilegesEnum.values()) {
-            if (!oldPrivileges.contains(priv.name())) {
-                System.out.println("Privilege was: "+priv.name());
-                newPrivileges.add(Privilege.builder().privilege(priv).build());
+        for (PrivilegesEnum privilegesEnum : PrivilegesEnum.values()) {
+            if (!oldPrivileges.contains(privilegesEnum.name())) {
+                System.out.println("Privilege was: "+privilegesEnum.name());
+                newPrivileges.add(Privilege.builder().privilege(privilegesEnum.name()).build());
             }
         }
         log.info("Privileges are: {}", newPrivileges);

@@ -38,12 +38,14 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<DataResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
         try {
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.email(), authRequest.password()));
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.email().trim(), authRequest.password().trim()));
             User user = userRepository.findUserByEmail(authRequest.email()).get();
+            System.out.println("User is " + user);
             String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
             LoginResponse response = new LoginResponse(token, user);
             return ResponseEntity.ok(new DataResponse(response, null));
         } catch (Exception ex) {
+            ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new DataResponse(null, "Invalid!"));
         }
     }

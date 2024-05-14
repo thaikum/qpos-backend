@@ -13,6 +13,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Privilege {
     @Id
-    @Enumerated(EnumType.STRING)
-    private PrivilegesEnum privilege;
+    private String privilege;
 }

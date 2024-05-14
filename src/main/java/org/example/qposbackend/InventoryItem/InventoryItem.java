@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Authorization.AuthorityFieldFilter.HideUnlessAuthorized;
 import org.example.qposbackend.Item.Item;
+import org.springframework.stereotype.Component;
 
 @Entity
 @Data
@@ -25,4 +26,6 @@ public class InventoryItem {
     private Double sellingPrice;
     @Builder.Default
     private Double discountAllowed = 0.0;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 }

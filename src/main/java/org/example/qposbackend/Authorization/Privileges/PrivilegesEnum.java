@@ -10,6 +10,7 @@ public enum PrivilegesEnum {
     VIEW_INVENTORY("VIEW INVENTORY RECORDS", "INVENTORY"),
     UPDATE_INVENTORY("UPDATE INVENTORY RECORD", "INVENTORY"),
     ADD_INVENTORY_ITEM("ADD INVENTORY ITEM", "INVENTORY"),
+    DELETE_INVENTORY_ITEM("DELETE INVENTORY ITEM", "INVENTORY"),
 
     //===================== stock ====================================
     ADD_STOCK("ADD STOCK", "STOCK"),
