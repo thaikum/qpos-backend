@@ -52,6 +52,8 @@ public class HttpConfigurer {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((requests) -> requests
+                        //OPTIONS
+                        .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         // ================================ SALES ===============================================
                         .requestMatchers(HttpMethod.POST, "order").hasAuthority(PrivilegesEnum.MAKE_SALE.name())
                         .requestMatchers(HttpMethod.POST, "order/get-by-range").hasAuthority(PrivilegesEnum.VIEW_HISTORICAL_SALES.name())
@@ -74,11 +76,15 @@ public class HttpConfigurer {
                         .requestMatchers(HttpMethod.POST, "users").hasAuthority(PrivilegesEnum.ADD_USER.name())
                         .requestMatchers(HttpMethod.GET, "users").hasAuthority(PrivilegesEnum.VIEW_USERS.name())
                         .requestMatchers(HttpMethod.POST, "users/change-password").authenticated()
-                        // =============================== RESOURCES =============================================
 
+                        // =============================== RESOURCES =============================================
                         .requestMatchers(HttpMethod.GET, "item/**").permitAll()
 
+                        // =============================== ACCOUNTING ============================================
+                        .requestMatchers(HttpMethod.POST, "accounts").hasAuthority(PrivilegesEnum.CREATE_ACCOUNT.name())
+                        .requestMatchers(HttpMethod.GET, "accounts").hasAuthority(PrivilegesEnum.VIEW_ACCOUNTS.name())
 
+                        // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()
                         .anyRequest().denyAll()
                 )

@@ -44,8 +44,8 @@ public class StockService {
 
                                         if (itemOptional.isPresent()) {
                                             InventoryItem item = itemOptional.get();
-                                            item.setQuantity(item.getQuantity() + stockItemDTO.quantity());
-                                            item.setBuyingPrice(stockItemDTO.buyingPrice());
+                                            item.setQuantity(item.getQuantity() + (stockItemDTO.quantity() * stockItemDTO.packaging()));
+                                            item.setBuyingPrice(stockItemDTO.buyingPrice() / stockItemDTO.packaging());
                                             item = inventoryItemRepository.save(item);
                                             return StockItem.builder()
                                                     .buyingPrice(stockItemDTO.buyingPrice())

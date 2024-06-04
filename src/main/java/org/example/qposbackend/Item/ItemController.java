@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.nio.file.Path;
 
-@CrossOrigin
+
 @RestController
 @RequestMapping("item")
 @RequiredArgsConstructor

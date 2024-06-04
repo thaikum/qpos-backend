@@ -22,10 +22,10 @@ public class InventoryItem {
     private Item item;
     private int quantity;
     private Double buyingPrice;
-    @HideUnlessAuthorized({"SOME_AUTHORITY"})
     private Double sellingPrice;
     @Builder.Default
     private Double discountAllowed = 0.0;
     @Column(nullable = false)
+    @Builder.Default
     private boolean isDeleted = false;
 }

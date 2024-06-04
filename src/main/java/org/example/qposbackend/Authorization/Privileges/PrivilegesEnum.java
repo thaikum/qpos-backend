@@ -34,8 +34,13 @@ public enum PrivilegesEnum {
 
     //======================== USERS =================================
     VIEW_USERS("VIEW USERS", "USERS"),
-    ADD_USER("ADD USER", "USERS");
+    ADD_USER("ADD USER", "USERS"),
 
+    //======================== ACCOUNTING ============================
+    CREATE_ACCOUNT("CREATE ACCOUNT", "ACCOUNTS"),
+    UPDATE_ACCOUNT("UPDATE ACCOUNT", "ACCOUNTS"),
+    DELETE_ACCOUNT("DELETE ACCOUNT", "ACCOUNTS"),
+    VIEW_ACCOUNTS("VIEW ACCOUNTS", "ACCOUNTS");
 
     private final String displayName;
     private final String category;

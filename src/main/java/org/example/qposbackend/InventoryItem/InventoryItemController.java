@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
-@CrossOrigin
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("inventory")

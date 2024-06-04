@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin
+//
 @RestController
 @RequestMapping("order")
 @RequiredArgsConstructor
@@ -25,6 +25,7 @@ public class OrderController {
             System.out.println("Saved");
             return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("Order created successfully"));
         } catch (Exception ex) {
+            ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new MessageResponse(ex.getMessage()));
         }
     }
