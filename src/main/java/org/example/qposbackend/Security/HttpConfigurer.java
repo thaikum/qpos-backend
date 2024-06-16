@@ -6,10 +6,12 @@ import org.example.qposbackend.Authorization.SystemUserDetails.UserDetailsServic
 import org.example.qposbackend.Security.Jwt.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,6 +27,7 @@ import org.springframework.security.access.AccessDeniedException;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@DependsOn("corsConfig")
 public class HttpConfigurer {
     private final JwtAuthFilter authFilter;
 
@@ -51,6 +54,7 @@ public class HttpConfigurer {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests((requests) -> requests
                         //OPTIONS
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
@@ -83,6 +87,18 @@ public class HttpConfigurer {
                         // =============================== ACCOUNTING ============================================
                         .requestMatchers(HttpMethod.POST, "accounts").hasAuthority(PrivilegesEnum.CREATE_ACCOUNT.name())
                         .requestMatchers(HttpMethod.GET, "accounts").hasAuthority(PrivilegesEnum.VIEW_ACCOUNTS.name())
+                        .requestMatchers(HttpMethod.PUT, "accounts").hasAuthority(PrivilegesEnum.UPDATE_ACCOUNT.name())
+
+                        // =============================== TRANSACTIONS ==========================================
+                        .requestMatchers(HttpMethod.POST, "transactions").hasAuthority(PrivilegesEnum.POST_TRANSACTION.name())
+                        .requestMatchers(HttpMethod.GET, "transactions").hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
+
+                        // =============================== USER ACTIVITY ==========================================
+                        .requestMatchers("user-activity/{user-id}", "user-activity/check-in", "user-activity/user-is-checked-in").authenticated()
+
+                        //================================== ADMIN PARAMETERS ====================================
+                        .requestMatchers(HttpMethod.GET, "admin-parameters").hasAnyAuthority(PrivilegesEnum.VIEW_ADMIN_PARAMETERS.name())
+                        .requestMatchers(HttpMethod.PUT, "admin-parameters").hasAnyAuthority(PrivilegesEnum.UPDATE_ADMIN_PARAMETERS.name())
 
                         // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()

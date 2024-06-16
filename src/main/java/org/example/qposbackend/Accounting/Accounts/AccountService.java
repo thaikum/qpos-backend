@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -75,5 +76,27 @@ public class AccountService {
         accounts.add(account);
 
         accountRepository.saveAll(accounts);
+    }
+
+    public void createAccount(Account account) {
+        int accounts = accountRepository.countByAccountType(account.getAccountType());
+        String accountNumber = String.format("%02d%03d", AccountTypes.valueOf(account.getAccountType()).ordinal(), accounts + 1);
+        account.setAccountNumber(accountNumber);
+        accountRepository.save(account);
+    }
+
+    public void updateAccount(Account account){
+        Optional<Account> acOpt = accountRepository.findByAccountNumber(account.getAccountNumber());
+
+        if(acOpt.isPresent()){
+            Account ac = acOpt.get();
+            ac.setAccountName(account.getAccountName());
+            ac.setDescription(account.getDescription());
+            ac.setBalance(account.getBalance());
+            ac.setAccountType(account.getAccountType());
+            accountRepository.save(ac);
+        }else{
+            throw new RuntimeException("No such account");
+        }
     }
 }

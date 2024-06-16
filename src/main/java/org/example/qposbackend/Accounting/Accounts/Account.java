@@ -28,6 +28,9 @@ public class Account extends IntegrityAttributes {
     @Column(nullable = false, length = 3)
     @Builder.Default
     private String currency = "KES";
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
 //    @PrePersist
 //    protected void onCreate() {

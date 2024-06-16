@@ -22,7 +22,6 @@ public class OrderController {
     public ResponseEntity<MessageResponse> createOrder(@RequestBody SaleOrder order) {
         try {
             orderService.processOrder(order);
-            System.out.println("Saved");
             return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("Order created successfully"));
         } catch (Exception ex) {
             ex.printStackTrace();

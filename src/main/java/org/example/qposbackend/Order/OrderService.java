@@ -4,17 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
-import org.example.qposbackend.Accounting.Transactions.PartTran.TransactionStatus;
+import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.Order.OrderItem.OrderItem;
-import org.example.qposbackend.Order.OrderItem.OrderItemRepository;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

@@ -30,6 +30,11 @@ public class UserController {
     private final UserRepository userRepository;
     private final UserService userService;
 
+    @GetMapping
+    public ResponseEntity<DataResponse> getUsers() {
+        return ResponseEntity.ok(new DataResponse(userRepository.findAll(), null));
+    }
+
     @PostMapping
     public String addNewUser(@RequestBody User user) {
         return service.addUser(user);
@@ -52,13 +57,16 @@ public class UserController {
 
     @PostMapping("change-password")
     public ResponseEntity<MessageResponse> changePassword(@RequestBody PasswordChange passwordChange) {
-        try{
+        try {
             userService.updatePassword(passwordChange);
             return ResponseEntity.ok(new MessageResponse("Password changed!"));
-        }catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new MessageResponse(e.getMessage()));
         }
     }
+
+
+
 }
 
 record LoginResponse(String token, User user) {
