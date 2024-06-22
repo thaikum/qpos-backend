@@ -30,7 +30,7 @@ public class User {
     private IdType idType;
     @Column(length = 50)
     private String idNumber;
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn
     @JsonIgnore
     private List<Password> passwords;

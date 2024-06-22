@@ -31,14 +31,4 @@ public class Account extends IntegrityAttributes {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
-
-//    @PrePersist
-//    protected void onCreate() {
-//        if(this.accountNumber == null){
-////            accountNumberGene
-//        }
-//        this.accountNumber = String.format("%02d", AccountTypes.valueOf(this.accountType).ordinal()) + String.format("%03d", this.id);
-//        System.out.println(accountNumber);
-//        System.out.println(accountType);
-//    }
 }

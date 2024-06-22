@@ -1,5 +1,6 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -28,38 +31,63 @@ public class TranHeaderService {
     private final PartTranRepository partTranRepository;
     private final SpringSecurityAuditorAware springSecurityAuditorAware;
     private final AccountRepository accountRepository;
+    private final SpringSecurityAuditorAware auditorAware;
+    private final EntityManager entityManager;
 
+    //    @Transactional
+    public void verifyTransaction(TranHeader tranHeader) {
+        AtomicReference<Double> net = new AtomicReference<>(0.0);
+        User user = auditorAware.getCurrentAuditor().get();
 
-    public void processTransaction(TranHeader tranHeader) {
-        double amount = 0.0, net = 0.0;
-
-        for (PartTran partTran : tranHeader.getPartTrans()) {
-            amount += partTran.getTranType().equals('C') ? partTran.getAmount() : 0.0;
-
+        tranHeader.getPartTrans().forEach(partTran -> {
             Account account = partTran.getAccount();
             if (partTran.getTranType().equals('C')) {
-                net -= partTran.getAmount();
-
+                net.updateAndGet(v -> (v - partTran.getAmount()));
                 account.setBalance(account.getBalance() - partTran.getAmount());
-
             } else {
-                net += partTran.getAmount();
+                net.updateAndGet(v -> (v + partTran.getAmount()));
                 account.setBalance(account.getBalance() + partTran.getAmount());
             }
+
             account = accountRepository.save(account);
             partTran.setAccount(account);
 
             log.info("{}", partTran);
-        }
+        });
 
-        if (net != 0.0) {
+        if (net.get() != 0.0) {
             throw new RuntimeException("Transaction must balance");
         } else {
-            List<PartTran> partTrans = partTranRepository.saveAll(tranHeader.getPartTrans());
-            tranHeader.setPartTrans(partTrans);
+            tranHeader.setVerifiedBy(user);
+            tranHeader.setVerifiedDate(new Date());
             tranHeaderRepository.save(tranHeader);
         }
     }
+
+    //    @Transactional(rollbackFor = Exception.class)
+//    @Transactional
+    public void verifyTransactions(List<TranHeader> tranHeaders) {
+        User user = auditorAware.getCurrentAuditor().get();
+
+        for(TranHeader tranHeader : tranHeaders) {
+            tranHeader.setVerifiedBy(user);
+
+            for(PartTran part : tranHeader.getPartTrans()) {
+                Account account = part.getAccount();
+                if (part.getTranType().equals('C')) {
+                    account.setBalance(account.getBalance() - part.getAmount());
+                }else{
+                    account.setBalance(account.getBalance() + part.getAmount());
+                }
+                account = accountRepository.save(account);
+                part.setAccount(account);
+            }
+        }
+        log.info("Now saving");
+        tranHeaderRepository.saveAll(tranHeaders);
+        log.info("Done saving");
+    }
+
 
     public void createTransactions(TranHeaderDTO tranHeaderDTO) {
         try {
@@ -83,7 +111,7 @@ public class TranHeaderService {
             }
             tranHeader.setPartTrans(partTrans);
 
-            processTransaction(tranHeader);
+            verifyTransaction(tranHeader);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -95,15 +123,15 @@ public class TranHeaderService {
 
         for (TranHeader tranHeader : tranHeaders) {
             List<PartTran> partTrans = tranHeader.getPartTrans();
-            if(!Objects.isNull(partTrans) && !partTrans.isEmpty()) {
+            if (!Objects.isNull(partTrans) && !partTrans.isEmpty()) {
                 for (PartTran partTran : partTrans) {
                     TransactionDTO transactionDTO = TransactionDTO.builder()
                             .tranId(tranHeader.getTranId())
                             .tranDate(tranHeader.getCreationTimestamp())
                             .tranAmount(partTran.getAmount())
                             .tranStatus(tranHeader.getStatus())
-                            .updatedBy(Objects.isNull(partTran.getLastModifiedBy()) ? null : partTran.getLastModifiedBy().getEmail())
-                            .accountName(Objects.isNull(partTran.getAccount())? null : partTran.getAccount().getAccountName())
+                            .updatedBy(Objects.isNull(tranHeader.getLastModifiedBy()) ? null : tranHeader.getLastModifiedBy().getEmail())
+                            .accountName(Objects.isNull(partTran.getAccount()) ? null : partTran.getAccount().getAccountName())
                             .tranType(partTran.getTranType())
                             .tranParticulars(partTran.getTranParticulars())
                             .build();

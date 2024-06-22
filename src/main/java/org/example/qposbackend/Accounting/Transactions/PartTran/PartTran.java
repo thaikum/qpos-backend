@@ -7,11 +7,10 @@ import org.example.qposbackend.Integrity.IntegrityAttributes;
 
 @Entity
 @Data
-@EqualsAndHashCode(callSuper = true)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PartTran extends IntegrityAttributes {
+public class PartTran  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,7 +18,7 @@ public class PartTran extends IntegrityAttributes {
     private Character tranType;
     private Double amount;
     private String tranParticulars;
-    @ManyToOne()
+    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn()
     private Account account;
 }

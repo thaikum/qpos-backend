@@ -1,9 +1,11 @@
 package org.example.qposbackend.Order;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepository;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
@@ -12,6 +14,7 @@ import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.Order.OrderItem.OrderItem;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,16 +24,18 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final InventoryItemRepository inventoryItemRepository;
     private final AccountRepository accountRepository;
     private final TranHeaderService tranHeaderService;
     private final SpringSecurityAuditorAware auditorAware;
+    private final TranHeaderRepository tranHeaderRepository;
 
 
-    public void processOrder(SaleOrder saleOrder){
-        for(OrderItem orderItem: saleOrder.getOrderItems()){
+    public void processOrder(SaleOrder saleOrder) {
+        for (OrderItem orderItem : saleOrder.getOrderItems()) {
             InventoryItem inventoryItem = orderItem.getInventoryItem();
             inventoryItem.setQuantity(inventoryItem.getQuantity() - orderItem.getQuantity());
             inventoryItem = inventoryItemRepository.save(inventoryItem);
@@ -41,16 +46,16 @@ public class OrderService {
         orderRepository.save(saleOrder);
     }
 
-    private void makeSale(SaleOrder saleOrder) {
+    private TranHeader makeSale(SaleOrder saleOrder) {
 
         User user = auditorAware.getCurrentAuditor().get();
 
         TranHeader tranHeader = TranHeader.builder()
                 .status(TransactionStatus.POSTED.name())
-                .postedDate(new Date())
-                .postedBy(user)
+                .postedDate(saleOrder.getDate())
+                .postedBy(saleOrder.getCreatedBy())
                 .verifiedBy(user)
-                .verifiedDate(new Date())
+                .status(TransactionStatus.UNVERIFIED.name())
                 .build();
 
         Account cashAccount = accountRepository.findByAccountName("CASH").get();
@@ -70,12 +75,10 @@ public class OrderService {
         int partTranNumber = 1;
         for (OrderItem orderItem : saleOrder.getOrderItems()) {
             for (int x = 0; x < orderItem.getQuantity(); x++) {
-                System.out.println("Number is: "+x);
-                //Stock reduction
                 PartTran tran = PartTran.builder()
                         .tranType('C')
                         .amount(orderItem.getInventoryItem().getBuyingPrice())
-                        .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                        .tranParticulars("Sold  " + orderItem.getInventoryItem().getItem().getName())
                         .account(inventoryAccount)
                         .partTranNumber(partTranNumber++)
                         .build();
@@ -84,7 +87,7 @@ public class OrderService {
                 tran = PartTran.builder()
                         .tranType('D')
                         .amount(orderItem.getInventoryItem().getBuyingPrice())
-                        .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                        .tranParticulars("Cost of " + orderItem.getInventoryItem().getItem().getName())
                         .account(costOfGoodsAccount)
                         .partTranNumber(partTranNumber++)
                         .build();
@@ -102,15 +105,15 @@ public class OrderService {
                 partTranList.add(tran);
 
                 Account type = null;
-                if(amountInCash >= orderItem.getPrice() - orderItem.getDiscount()){
+                if (amountInCash >= orderItem.getPrice() - orderItem.getDiscount()) {
                     type = cashAccount;
                     amountInCash -= orderItem.getPrice() - orderItem.getDiscount();
-                }else if(amountInMobile >= orderItem.getPrice() - orderItem.getDiscount()){
+                } else if (amountInMobile >= orderItem.getPrice() - orderItem.getDiscount()) {
                     type = mobileMoneyAccount;
                     amountInMobile -= orderItem.getPrice() - orderItem.getDiscount();
                 }
 
-                if(type != null){
+                if (type != null) {
                     tran = PartTran.builder()
                             .tranType('D')
                             .amount(orderItem.getPrice() - orderItem.getDiscount())
@@ -119,12 +122,12 @@ public class OrderService {
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
-                }else{
+                } else {
                     tran = PartTran.builder()
                             .tranType('D')
                             .amount(amountInCash)
                             .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
-                            .account(type)
+                            .account(cashAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
@@ -134,7 +137,7 @@ public class OrderService {
                             .tranType('C')
                             .amount((orderItem.getPrice() - orderItem.getDiscount()) - amountInCash)
                             .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
-                            .account(type)
+                            .account(mobileMoneyAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
@@ -142,8 +145,26 @@ public class OrderService {
                 }
             }
         }
-        System.out.println("Parttran list is size: "+ partTranList.size());
         tranHeader.setPartTrans(partTranList);
-        tranHeaderService.processTransaction(tranHeader);
+        return tranHeader;
+    }
+
+    @Bean
+    private void loadAllSalesInAccount() {
+        List<SaleOrder> saleOrders = orderRepository.findAll();
+
+        List<TranHeader> tranHeaders = new ArrayList<>();
+        int x = 0;
+        for (SaleOrder saleOrder : saleOrders) {
+            TranHeader tranHeader = makeSale(saleOrder);
+            tranHeaders.add(tranHeader);
+            x++;
+            if(x == 244 || x == 245){
+                log.info("{}: {}", x, tranHeader);
+            }
+        }
+
+        tranHeaderService.verifyTransactions(tranHeaders);
+        log.info("All sales accounted for");
     }
 }

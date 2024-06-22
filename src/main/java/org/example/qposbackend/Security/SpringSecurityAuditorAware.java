@@ -32,7 +32,7 @@ public class SpringSecurityAuditorAware implements AuditorAware<User> {
             if(userDetailsOptional.isPresent()){
                 return userRepository.findUserByEmail(userDetailsOptional.get().getUsername());
             }else{
-                throw new RuntimeException("User not found");
+                return userRepository.findUserByEmail("no-reply@phoxac.com");
             }
         }catch (Exception ex){
             return Optional.empty();

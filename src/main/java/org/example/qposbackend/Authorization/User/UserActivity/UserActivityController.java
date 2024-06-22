@@ -56,8 +56,12 @@ public class UserActivityController {
     }
 
     @PostMapping("check-out")
-    public ResponseEntity<MessageResponse> checkOut(){
-        userActivityService.checkOut();
-        return ResponseEntity.ok(new MessageResponse("You have successfully checked out"));
+    public ResponseEntity<MessageResponse> checkOut(HttpServletRequest request){
+        try {
+            userActivityService.checkOut(request);
+            return ResponseEntity.ok(new MessageResponse("You have successfully checked out"));
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse(e.getMessage()));
+        }
     }
 }

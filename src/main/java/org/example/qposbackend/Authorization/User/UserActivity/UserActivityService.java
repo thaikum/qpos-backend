@@ -7,7 +7,6 @@ import org.example.qposbackend.Configurations.AdminParameters.AdminParameters;
 import org.example.qposbackend.Configurations.AdminParameters.AdminParametersRepository;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
-
 import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,13 +33,19 @@ public class UserActivityService {
 
     }
 
-    public void checkOut() {
-        User user = springSecurityAuditorAware.getCurrentAuditor().get();
-        Optional<UserActivity> optionalUserActivity = userActivityRepository.findFirstByUserIdOrderByTimeInDesc(user.getId());
-        if(optionalUserActivity.isPresent()) {
-            UserActivity userActivity = optionalUserActivity.get();
-            userActivity.setTimeOut(new Date());
-            userActivityRepository.save(userActivity);
+    public void checkOut(HttpServletRequest request) {
+        AdminParameters adminParameters = adminParametersRepository.findAll().get(0);
+
+        if(Objects.equals(adminParameters.getCheckOutIp(), request.getRemoteAddr())) {
+            User user = springSecurityAuditorAware.getCurrentAuditor().get();
+            Optional<UserActivity> optionalUserActivity = userActivityRepository.findFirstByUserIdOrderByTimeInDesc(user.getId());
+            if (optionalUserActivity.isPresent()) {
+                UserActivity userActivity = optionalUserActivity.get();
+                userActivity.setTimeOut(new Date());
+                userActivityRepository.save(userActivity);
+            }
+        }else{
+            throw new RuntimeException("Make sure you are at the shop before checking out");
         }
     }
 }
