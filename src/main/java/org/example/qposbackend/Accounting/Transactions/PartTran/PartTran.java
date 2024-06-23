@@ -10,7 +10,7 @@ import org.example.qposbackend.Integrity.IntegrityAttributes;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PartTran  {
+public class PartTran {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -18,7 +18,7 @@ public class PartTran  {
     private Character tranType;
     private Double amount;
     private String tranParticulars;
-    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToOne(cascade = {CascadeType.DETACH})
     @JoinColumn()
     private Account account;
 }

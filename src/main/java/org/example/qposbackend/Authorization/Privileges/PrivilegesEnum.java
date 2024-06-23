@@ -53,7 +53,11 @@ public enum PrivilegesEnum {
 
     //================================= ADMIN PARAMETERS =====================
     UPDATE_ADMIN_PARAMETERS("UPDATE ADMIN PARAMETERS", "ADMIN_PARAMETERS"),
-    VIEW_ADMIN_PARAMETERS("VIEW ADMIN PARAMETERS", "ADMIN_PARAMETERS");
+    VIEW_ADMIN_PARAMETERS("VIEW ADMIN PARAMETERS", "ADMIN_PARAMETERS"),
+
+    //================================ REPORTS ==============================
+    VIEW_PROFIT_AND_LOSS_REPORT("VIEW PROFIT AND LOSS REPORT", "REPORTS"),
+    VIEW_ACCOUNT_STATEMENT_REPORT("VIEW ACCOUNT STATEMENT REPORT", "REPORTS");
 
     private final String displayName;
     private final String category;

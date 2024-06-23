@@ -58,17 +58,17 @@ public class OrderService {
                 .status(TransactionStatus.UNVERIFIED.name())
                 .build();
 
-        Account cashAccount = accountRepository.findByAccountName("CASH").get();
-        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").get();
-        Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").get();
-        Account inventoryAccount = accountRepository.findByAccountName("INVENTORY").get();
-        Account mobileMoneyAccount = accountRepository.findByAccountName("MOBILE MONEY").get();
+        Account cashAccount = accountRepository.findByAccountName("CASH").orElseThrow();
+        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow();
+        Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").orElseThrow();
+        Account inventoryAccount = accountRepository.findByAccountName("INVENTORY").orElseThrow();
+        Account mobileMoneyAccount = accountRepository.findByAccountName("MOBILE MONEY").orElseThrow();
 
         double amountInCash = Objects.isNull(saleOrder.getAmountInCash()) ? 0.0 : (saleOrder.getAmountInCash());
         double amountInMobile = Objects.isNull(saleOrder.getAmountInMpesa()) ? 0.0 : (saleOrder.getAmountInMpesa());
 
         if (amountInCash != 0) {
-            amountInCash = saleOrder.getOrderItems().stream().mapToDouble(item -> item.getPrice() * item.getQuantity() - item.getDiscount()).sum() - amountInMobile;
+            amountInCash = saleOrder.getOrderItems().stream().mapToDouble(item -> (item.getPrice() - item.getDiscount()) * item.getQuantity()).sum() - amountInMobile;
         }
 
         List<PartTran> partTranList = new ArrayList<>();
@@ -104,13 +104,15 @@ public class OrderService {
                         .build();
                 partTranList.add(tran);
 
+                Double amtT = tran.getAmount();
+
                 Account type = null;
                 if (amountInCash >= orderItem.getPrice() - orderItem.getDiscount()) {
                     type = cashAccount;
-                    amountInCash -= orderItem.getPrice() - orderItem.getDiscount();
+                    amountInCash -= (orderItem.getPrice() - orderItem.getDiscount());
                 } else if (amountInMobile >= orderItem.getPrice() - orderItem.getDiscount()) {
                     type = mobileMoneyAccount;
-                    amountInMobile -= orderItem.getPrice() - orderItem.getDiscount();
+                    amountInMobile -= (orderItem.getPrice() - orderItem.getDiscount());
                 }
 
                 if (type != null) {
@@ -122,26 +124,30 @@ public class OrderService {
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
+
+
                 } else {
+                    double cash = (orderItem.getPrice() - orderItem.getDiscount()) - amountInMobile;
                     tran = PartTran.builder()
                             .tranType('D')
-                            .amount(amountInCash)
+                            .amount(cash)
                             .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
                             .account(cashAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
 
-
                     tran = PartTran.builder()
-                            .tranType('C')
-                            .amount((orderItem.getPrice() - orderItem.getDiscount()) - amountInCash)
+                            .tranType('D')
+                            .amount(amountInMobile)
                             .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
                             .account(mobileMoneyAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
                     partTranList.add(tran);
-                    amountInCash = 0.0;
+
+                    amountInMobile = 0.0;
+                    amountInCash -= cash;
                 }
             }
         }
@@ -151,20 +157,25 @@ public class OrderService {
 
     @Bean
     private void loadAllSalesInAccount() {
+        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow();
+
+        if (salesAccount.getBalance() != 0){
+            return;
+        }
         List<SaleOrder> saleOrders = orderRepository.findAll();
 
         List<TranHeader> tranHeaders = new ArrayList<>();
-        int x = 0;
         for (SaleOrder saleOrder : saleOrders) {
             TranHeader tranHeader = makeSale(saleOrder);
             tranHeaders.add(tranHeader);
-            x++;
-            if(x == 244 || x == 245){
-                log.info("{}: {}", x, tranHeader);
-            }
         }
 
-        tranHeaderService.verifyTransactions(tranHeaders);
+        try{tranHeaderService.verifyTransactions(tranHeaders);
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
         log.info("All sales accounted for");
     }
 }

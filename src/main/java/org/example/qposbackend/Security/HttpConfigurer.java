@@ -100,6 +100,10 @@ public class HttpConfigurer {
                         .requestMatchers(HttpMethod.GET, "admin-parameters").hasAnyAuthority(PrivilegesEnum.VIEW_ADMIN_PARAMETERS.name())
                         .requestMatchers(HttpMethod.PUT, "admin-parameters").hasAnyAuthority(PrivilegesEnum.UPDATE_ADMIN_PARAMETERS.name())
 
+                        //================================== REPORTS ================================================
+                        .requestMatchers("reports/profit_and_loss").hasAnyAuthority(PrivilegesEnum.VIEW_PROFIT_AND_LOSS_REPORT.name())
+                        .requestMatchers("reports/account_statement").hasAnyAuthority(PrivilegesEnum.VIEW_ACCOUNT_STATEMENT_REPORT.name())
+
                         // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()
                         .anyRequest().denyAll()

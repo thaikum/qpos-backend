@@ -1,12 +1,10 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
-import org.example.qposbackend.Accounting.Transactions.PartTran.PartTranRepository;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.DTOs.PartTranDTO;
@@ -16,28 +14,21 @@ import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-//@Transactional
 public class TranHeaderService {
     private final TranHeaderRepository tranHeaderRepository;
-    private final PartTranRepository partTranRepository;
     private final SpringSecurityAuditorAware springSecurityAuditorAware;
     private final AccountRepository accountRepository;
     private final SpringSecurityAuditorAware auditorAware;
-    private final EntityManager entityManager;
 
-    //    @Transactional
     public void verifyTransaction(TranHeader tranHeader) {
         AtomicReference<Double> net = new AtomicReference<>(0.0);
-        User user = auditorAware.getCurrentAuditor().get();
+        User user = auditorAware.getCurrentAuditor().orElseThrow();
 
         tranHeader.getPartTrans().forEach(partTran -> {
             Account account = partTran.getAccount();
@@ -60,38 +51,53 @@ public class TranHeaderService {
         } else {
             tranHeader.setVerifiedBy(user);
             tranHeader.setVerifiedDate(new Date());
+            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
             tranHeaderRepository.save(tranHeader);
         }
     }
 
-    //    @Transactional(rollbackFor = Exception.class)
-//    @Transactional
+    @Transactional
     public void verifyTransactions(List<TranHeader> tranHeaders) {
-        User user = auditorAware.getCurrentAuditor().get();
+        User user = auditorAware.getCurrentAuditor().orElseThrow();
+        Map<String, Double> accountMap = new HashMap<>();
 
         for(TranHeader tranHeader : tranHeaders) {
-            tranHeader.setVerifiedBy(user);
-
+            Double net = 0.0;
             for(PartTran part : tranHeader.getPartTrans()) {
                 Account account = part.getAccount();
+                accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
+                Double change = accountMap.get(account.getAccountNumber());
+
                 if (part.getTranType().equals('C')) {
-                    account.setBalance(account.getBalance() - part.getAmount());
+                    change -= part.getAmount();
+                    net -= part.getAmount();
                 }else{
-                    account.setBalance(account.getBalance() + part.getAmount());
+                    change += part.getAmount();
+                    net += part.getAmount();
                 }
-                account = accountRepository.save(account);
-                part.setAccount(account);
+                accountMap.put(account.getAccountNumber(), change);
             }
+
+            if (net != 0.0) {
+                throw new RuntimeException("Transaction must balance");
+            }
+
+            tranHeader.setVerifiedBy(user);
+            tranHeader.setVerifiedDate(tranHeader.getPostedDate());
+            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
         }
         log.info("Now saving");
         tranHeaderRepository.saveAll(tranHeaders);
+        for(Map.Entry<String, Double> entry : accountMap.entrySet()) {
+            accountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
+        }
         log.info("Done saving");
     }
 
 
     public void createTransactions(TranHeaderDTO tranHeaderDTO) {
         try {
-            User user = springSecurityAuditorAware.getCurrentAuditor().get();
+            User user = springSecurityAuditorAware.getCurrentAuditor().orElseThrow();
             TranHeader tranHeader = TranHeader.builder()
                     .postedBy(user)
                     .postedDate(tranHeaderDTO.postedDate())
@@ -105,7 +111,7 @@ public class TranHeaderService {
                         .tranType(partTranDTO.tranType())
                         .amount(partTranDTO.amount())
                         .tranParticulars(partTranDTO.tranParticulars())
-                        .account(accountRepository.findByAccountNumber(partTranDTO.accountNumber()).get())
+                        .account(accountRepository.findByAccountNumber(partTranDTO.accountNumber()).orElseThrow())
                         .build();
                 partTrans.add(partTran);
             }
