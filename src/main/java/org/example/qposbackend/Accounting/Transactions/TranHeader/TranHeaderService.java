@@ -7,6 +7,7 @@ import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.PartTranDTO;
 import org.example.qposbackend.DTOs.TranHeaderDTO;
 import org.example.qposbackend.DTOs.TransactionDTO;
@@ -56,14 +57,53 @@ public class TranHeaderService {
         }
     }
 
+//    @Transactional
+//    public void verifyTransactions(List<TranHeader> tranHeaders) {
+//        User user = auditorAware.getCurrentAuditor().orElseThrow();
+//        Map<String, Double> accountMap = new HashMap<>();
+//
+//        for (TranHeader tranHeader : tranHeaders) {
+//            Double net = 0.0;
+//            for (PartTran part : tranHeader.getPartTrans()) {
+//                Account account = part.getAccount();
+//                accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
+//                Double change = accountMap.get(account.getAccountNumber());
+//
+//                if (part.getTranType().equals('C')) {
+//                    change -= part.getAmount();
+//                    net -= part.getAmount();
+//                } else {
+//                    change += part.getAmount();
+//                    net += part.getAmount();
+//                }
+//                accountMap.put(account.getAccountNumber(), change);
+//            }
+//
+//            if (net != 0.0) {
+//                throw new RuntimeException("Transaction must balance");
+//            }
+//
+//            tranHeader.setVerifiedBy(user);
+//            tranHeader.setVerifiedDate(tranHeader.getPostedDate());
+//            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
+//        }
+//        log.info("Now saving");
+//        tranHeaderRepository.saveAll(tranHeaders);
+//        for (Map.Entry<String, Double> entry : accountMap.entrySet()) {
+//            accountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
+//        }
+//        log.info("Done saving");
+//    }
+
     @Transactional
     public void verifyTransactions(List<TranHeader> tranHeaders) {
         User user = auditorAware.getCurrentAuditor().orElseThrow();
         Map<String, Double> accountMap = new HashMap<>();
 
-        for(TranHeader tranHeader : tranHeaders) {
+        List<Long> ids = new ArrayList<>();
+        for (TranHeader tranHeader : tranHeaders) {
             Double net = 0.0;
-            for(PartTran part : tranHeader.getPartTrans()) {
+            for (PartTran part : tranHeader.getPartTrans()) {
                 Account account = part.getAccount();
                 accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
                 Double change = accountMap.get(account.getAccountNumber());
@@ -71,7 +111,7 @@ public class TranHeaderService {
                 if (part.getTranType().equals('C')) {
                     change -= part.getAmount();
                     net -= part.getAmount();
-                }else{
+                } else {
                     change += part.getAmount();
                     net += part.getAmount();
                 }
@@ -82,18 +122,20 @@ public class TranHeaderService {
                 throw new RuntimeException("Transaction must balance");
             }
 
-            tranHeader.setVerifiedBy(user);
-            tranHeader.setVerifiedDate(tranHeader.getPostedDate());
-            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
+            ids.add(tranHeader.getTranId());
         }
         log.info("Now saving");
-        tranHeaderRepository.saveAll(tranHeaders);
-        for(Map.Entry<String, Double> entry : accountMap.entrySet()) {
+        tranHeaderRepository.verifyStatusByIds(user.getId(), ids);
+        for (Map.Entry<String, Double> entry : accountMap.entrySet()) {
             accountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
         }
         log.info("Done saving");
     }
 
+
+    public void declineTranHeaders(List<Long> ids) {
+
+    }
 
     public void createTransactions(TranHeaderDTO tranHeaderDTO) {
         try {
@@ -116,16 +158,17 @@ public class TranHeaderService {
                 partTrans.add(partTran);
             }
             tranHeader.setPartTrans(partTrans);
+            tranHeader.setStatus(TransactionStatus.UNVERIFIED.name());
 
-            verifyTransaction(tranHeader);
+            tranHeaderRepository.save(tranHeader);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public List<TransactionDTO> fetchTransactions() {
+    public List<TransactionDTO> fetchTransactionsByRange(DateRange range, String status) {
         List<TransactionDTO> transactionDTOList = new ArrayList<>();
-        List<TranHeader> tranHeaders = tranHeaderRepository.findAll();
+        List<TranHeader> tranHeaders = tranHeaderRepository.findAllByStatusAndPostedDateBetween(status, range.start(), range.end());
 
         for (TranHeader tranHeader : tranHeaders) {
             List<PartTran> partTrans = tranHeader.getPartTrans();

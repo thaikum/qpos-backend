@@ -23,13 +23,14 @@ public class TranHeader extends IntegrityAttributes {
     private String status;
     private Date postedDate;
     private Date verifiedDate;
-    @ManyToOne(cascade = {CascadeType.MERGE})
+    @ManyToOne(cascade = {CascadeType.DETACH})
     @JoinColumn()
     private User verifiedBy;
-    @ManyToOne(cascade = {CascadeType.MERGE})
+    @ManyToOne(cascade = {CascadeType.DETACH})
     @JoinColumn()
     private User postedBy;
-    @OneToMany(cascade = CascadeType.ALL)
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name="tran_header_id")
     private List<PartTran> partTrans;
 }

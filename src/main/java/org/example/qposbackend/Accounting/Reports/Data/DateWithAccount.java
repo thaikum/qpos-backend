@@ -1,4 +1,4 @@
-package org.example.qposbackend.Accounting.Reports;
+package org.example.qposbackend.Accounting.Reports.Data;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

@@ -2,6 +2,9 @@ package org.example.qposbackend.Accounting.Reports;
 
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JRException;
+import org.example.qposbackend.Accounting.Reports.Data.DateWithAccount;
+import org.example.qposbackend.Accounting.Reports.Data.DatesData;
+import org.example.qposbackend.Accounting.Reports.Data.NumberOfDaysData;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -35,6 +38,12 @@ public class ReportsController {
     @PostMapping("account_statement")
     private ResponseEntity<Resource> generateAccountStatement(@RequestBody DateWithAccount acData) throws JRException, IOException, SQLException {
         byte[] reportContent = reportsService.generateAccountStatement(acData);
+        return resourceBuilder(reportContent);
+    }
+
+    @PostMapping("restocking_report")
+    private ResponseEntity<Resource> generateRestockingReport(@RequestBody NumberOfDaysData numberOfDaysData) throws JRException, IOException, SQLException {
+        byte[] reportContent = reportsService.generateRestockingReport(numberOfDaysData);
         return resourceBuilder(reportContent);
     }
 

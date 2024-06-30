@@ -1,6 +1,5 @@
-package org.example.qposbackend.Accounting.Reports;
+package org.example.qposbackend.Accounting.Reports.Data;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.Date;

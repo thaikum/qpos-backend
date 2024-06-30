@@ -47,7 +47,7 @@ WHERE
     a.account_type = 'EXPENSE'
   AND a.account_name <> 'COST OF GOODS'
   AND (
-    (th.verified_date BETWEEN $P{startDate} AND $P{endDate})
+    (DATE(th.verified_date) BETWEEN $P{startDate} AND $P{endDate})
         OR th.verified_date IS NULL
     )
 GROUP BY
@@ -79,13 +79,11 @@ GROUP BY
     SELECT
         SUM(CASE WHEN a.account_name = 'SALES REVENUE' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS total_income,
         SUM(CASE WHEN a.account_name = 'COST OF GOODS' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS total_cost,
-        SUM(CASE WHEN a.account_type = 'EXPENSE' THEN
-                     CASE WHEN pt.tran_type = 'C' THEN -COALESCE(pt.amount, 0) ELSE COALESCE(pt.amount, 0) END
-                 ELSE 0 END) AS net_profit
+        SUM(CASE WHEN a.account_type = 'EXPENSE' THEN COALESCE(-pt.amount,0) WHEN a.account_type = 'INCOME' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS net_profit
     FROM part_tran pt
              JOIN tran_header th ON th.tran_id = pt.tran_header_id
              JOIN account a ON pt.account_id = a.id
-             where th.verified_date between $P{startDate} and $P{endDate}
+             where DATE(th.verified_date) between $P{startDate} and $P{endDate}
 )
 SELECT total_income, total_cost, net_profit
 FROM aggregated;]]>
@@ -420,7 +418,7 @@ FROM aggregated;]]>
 				<textElement textAlignment="Center" verticalAlignment="Bottom">
 					<font size="13"/>
 				</textElement>
-				<text><![CDATA[COST OF GOODS SOLD]]></text>
+				<text><![CDATA[GROSS PROFIT]]></text>
 			</staticText>
 		</band>
 	</detail>

@@ -42,13 +42,13 @@ public class OrderService {
             orderItem.setInventoryItem(inventoryItem);
         }
 
-//        makeSale(saleOrder);
+        makeSale(saleOrder);
         orderRepository.save(saleOrder);
     }
 
     private TranHeader makeSale(SaleOrder saleOrder) {
 
-        User user = auditorAware.getCurrentAuditor().get();
+        User user = auditorAware.getCurrentAuditor().orElseThrow();
 
         TranHeader tranHeader = TranHeader.builder()
                 .status(TransactionStatus.POSTED.name())

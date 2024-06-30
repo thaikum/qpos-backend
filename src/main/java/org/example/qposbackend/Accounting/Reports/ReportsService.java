@@ -2,6 +2,9 @@ package org.example.qposbackend.Accounting.Reports;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.*;
+import org.example.qposbackend.Accounting.Reports.Data.DateWithAccount;
+import org.example.qposbackend.Accounting.Reports.Data.DatesData;
+import org.example.qposbackend.Accounting.Reports.Data.NumberOfDaysData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ResourceUtils;
@@ -58,5 +61,12 @@ public class ReportsService {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JasperExportManager.exportReportToPdfStream(jasperPrint, baos);
         return baos.toByteArray();
+    }
+
+    public byte[] generateRestockingReport(NumberOfDaysData numberOfDaysData) throws JRException, SQLException, FileNotFoundException {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("days_to_stock", numberOfDaysData.getNumberOfDays());
+
+        return generateJasperReport(parameters, "future_stocking_report.jrxml");
     }
 }

@@ -92,6 +92,8 @@ public class HttpConfigurer {
                         // =============================== TRANSACTIONS ==========================================
                         .requestMatchers(HttpMethod.POST, "transactions").hasAuthority(PrivilegesEnum.POST_TRANSACTION.name())
                         .requestMatchers(HttpMethod.GET, "transactions").hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
+                        .requestMatchers(HttpMethod.PUT, "transactions/verify").hasAuthority(PrivilegesEnum.VERIFY_TRANSACTION.name())
+                        .requestMatchers(HttpMethod.POST, "transactions/by-range/{status}").hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
 
                         // =============================== USER ACTIVITY ==========================================
                         .requestMatchers("user-activity/{user-id}", "user-activity/check-in", "user-activity/user-is-checked-in").authenticated()
@@ -103,6 +105,7 @@ public class HttpConfigurer {
                         //================================== REPORTS ================================================
                         .requestMatchers("reports/profit_and_loss").hasAnyAuthority(PrivilegesEnum.VIEW_PROFIT_AND_LOSS_REPORT.name())
                         .requestMatchers("reports/account_statement").hasAnyAuthority(PrivilegesEnum.VIEW_ACCOUNT_STATEMENT_REPORT.name())
+                        .requestMatchers("reports/restocking_report").hasAnyAuthority(PrivilegesEnum.VIEW_RESTOCKING_ESTIMATES.name())
 
                         // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()
