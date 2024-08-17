@@ -1,16 +1,18 @@
 package org.example.qposbackend.Accounting.Transactions.PartTran;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.example.qposbackend.Accounting.Accounts.Account;
-import org.example.qposbackend.Integrity.IntegrityAttributes;
 
 @Entity
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PartTran {
+public class PartTran{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,4 +23,5 @@ public class PartTran {
     @ManyToOne(cascade = {CascadeType.DETACH})
     @JoinColumn()
     private Account account;
+
 }

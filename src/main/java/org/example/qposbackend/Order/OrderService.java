@@ -1,26 +1,28 @@
 package org.example.qposbackend.Order;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
-import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepository;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.DTOs.ReturnItemRequest;
+import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.Order.OrderItem.OrderItem;
+import org.example.qposbackend.Order.OrderItem.OrderItemRepository;
+import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInward;
+import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInwardRepository;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,38 +33,152 @@ public class OrderService {
     private final AccountRepository accountRepository;
     private final TranHeaderService tranHeaderService;
     private final SpringSecurityAuditorAware auditorAware;
-    private final TranHeaderRepository tranHeaderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ReturnInwardRepository returnInwardRepository;
 
+    public List<SaleOrder> fetchByDateRange(Date start, Date end) {
+        List<SaleOrder> ordersWithinRange = orderRepository.fetchAllByDateRange(start, end);
+
+        List<SaleOrder> returnedItems = orderRepository.fetchAllSalesReturnedWithinRange(start, end);
+        returnedItems.forEach(order -> {
+            order.setOrderItems(order.getOrderItems().stream().filter(item -> !Objects.isNull(item.getReturnInward())).toList());
+        });
+
+        ordersWithinRange.addAll(returnedItems);
+        return ordersWithinRange;
+    }
 
     public void processOrder(SaleOrder saleOrder) {
         for (OrderItem orderItem : saleOrder.getOrderItems()) {
-            InventoryItem inventoryItem = orderItem.getInventoryItem();
+            InventoryItem inventoryItem = inventoryItemRepository.findById(orderItem.getInventoryItem().getId()).orElseThrow(() -> new RuntimeException("No inventory found."));
+            System.out.println(orderItem.getQuantity());
+            System.out.println(inventoryItem.getQuantity());
+            System.out.println(inventoryItem.getItem().getName());
             inventoryItem.setQuantity(inventoryItem.getQuantity() - orderItem.getQuantity());
             inventoryItem = inventoryItemRepository.save(inventoryItem);
             orderItem.setInventoryItem(inventoryItem);
         }
 
-        makeSale(saleOrder);
+        tranHeaderService.saveAndVerifyTranHeader(makeSale(saleOrder));
         orderRepository.save(saleOrder);
+    }
+
+    @Transactional
+    public void returnItem(ReturnItemRequest returnItemRequest) {
+        OrderItem orderItem = orderItemRepository.findById(returnItemRequest.orderItemId()).orElseThrow(() -> new NoSuchElementException("No item found."));
+        SaleOrder saleOrder = orderRepository.findByOrderItems(orderItem).orElseThrow(() -> new NoSuchElementException("Sale not found."));
+
+        long dateDiff = ChronoUnit.DAYS.between(saleOrder.getDate().toInstant(), new Date().toInstant());
+        System.out.println(dateDiff);
+        if (Math.abs(dateDiff) > 30) {
+            throw new NotAcceptableException("Items cannot be returned after 30 days.");
+        } else if (orderItem.getQuantity() < returnItemRequest.quantity()) {
+            throw new NotAcceptableException("Quantity returned must not exceed quantity was sold.");
+        }
+
+
+        if (Objects.isNull(orderItem.getReturnInward())) {
+
+            ReturnInward returnInward = ReturnInward.builder()
+                    .quantityReturned(returnItemRequest.quantity())
+                    .dateReturned(new Date())
+                    .dateSold(saleOrder.getDate())
+                    .returnReason(returnItemRequest.reason())
+                    .costIncurred(returnItemRequest.chargesIncurred())
+                    .build();
+            returnInward = returnInwardRepository.save(returnInward);
+            orderItem.setReturnInward(returnInward);
+
+            orderItemRepository.save(orderItem);
+            TranHeader tranHeader = returnItemTransactions(saleOrder, orderItem, returnItemRequest.quantity());
+            tranHeaderService.saveAndVerifyTranHeader(tranHeader);
+        } else {
+            ReturnInward returnInward = orderItem.getReturnInward();
+            returnInward.setDateReturned(new Date());
+            orderItemRepository.save(orderItem);
+        }
+    }
+
+    private TranHeader returnItemTransactions(SaleOrder saleOrder, OrderItem orderItem, int quantity) {
+        User user = auditorAware.getCurrentAuditor().orElseThrow(() -> new NoSuchElementException("User not found"));
+        Double amountSpent = (orderItem.getReturnInward().getQuantityReturned() * orderItem.getInventoryItem().getSellingPrice()) - orderItem.getDiscount();
+        String accountName = saleOrder.getAmountInCash() >= amountSpent ? "CASH" : "MOBILE MONEY";
+        Account account = accountRepository.findByAccountName(accountName).orElseThrow(() -> new NoSuchElementException(accountName + " account not found."));
+        Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
+        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
+        Account inventoryAccount = accountRepository.findByAccountName("INVENTORY").orElseThrow(() -> new NoSuchElementException("INVENTORY account not found"));
+
+        TranHeader tranHeader = TranHeader.builder()
+                .status(TransactionStatus.POSTED.name())
+                .postedDate(new Date())
+                .postedBy(saleOrder.getCreatedBy())
+                .verifiedBy(user)
+                .status(TransactionStatus.UNVERIFIED.name())
+                .build();
+        List<PartTran> partTranList = new ArrayList<>();
+        int partTranNumber = 1;
+
+        for (int x = 0; x < quantity; x++) {
+            PartTran tran = PartTran.builder()
+                    .tranType('D')
+                    .amount(orderItem.getInventoryItem().getBuyingPrice())
+                    .tranParticulars("Returned  " + orderItem.getInventoryItem().getItem().getName())
+                    .account(inventoryAccount)
+                    .partTranNumber(partTranNumber++)
+                    .build();
+            partTranList.add(tran);
+
+            tran = PartTran.builder()
+                    .tranType('C')
+                    .amount(orderItem.getInventoryItem().getBuyingPrice())
+                    .tranParticulars("Cost of returned " + orderItem.getInventoryItem().getItem().getName())
+                    .account(costOfGoodsAccount)
+                    .partTranNumber(partTranNumber++)
+                    .build();
+            partTranList.add(tran);
+
+
+            //Sales
+            tran = PartTran.builder()
+                    .tranType('D')
+                    .amount(orderItem.getPrice() - orderItem.getDiscount())
+                    .tranParticulars("Return of " + orderItem.getInventoryItem().getItem().getName())
+                    .account(salesAccount)
+                    .partTranNumber(partTranNumber++)
+                    .build();
+            partTranList.add(tran);
+
+            tran = PartTran.builder()
+                    .tranType('C')
+                    .amount(orderItem.getPrice() - orderItem.getDiscount())
+                    .tranParticulars("Return of " + orderItem.getInventoryItem().getItem().getName())
+                    .account(account)
+                    .partTranNumber(partTranNumber++)
+                    .build();
+            partTranList.add(tran);
+        }
+
+        tranHeader.setPartTrans(partTranList);
+        return tranHeader;
     }
 
     private TranHeader makeSale(SaleOrder saleOrder) {
 
-        User user = auditorAware.getCurrentAuditor().orElseThrow();
+        User user = auditorAware.getCurrentAuditor().orElseThrow(() -> new NoSuchElementException("User not logged in"));
 
         TranHeader tranHeader = TranHeader.builder()
                 .status(TransactionStatus.POSTED.name())
-                .postedDate(saleOrder.getDate())
+                .postedDate(new Date())
                 .postedBy(saleOrder.getCreatedBy())
                 .verifiedBy(user)
                 .status(TransactionStatus.UNVERIFIED.name())
                 .build();
 
-        Account cashAccount = accountRepository.findByAccountName("CASH").orElseThrow();
-        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow();
-        Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").orElseThrow();
-        Account inventoryAccount = accountRepository.findByAccountName("INVENTORY").orElseThrow();
-        Account mobileMoneyAccount = accountRepository.findByAccountName("MOBILE MONEY").orElseThrow();
+        Account cashAccount = accountRepository.findByAccountName("CASH").orElseThrow(() -> new NoSuchElementException("CASH account not found"));
+        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
+        Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
+        Account inventoryAccount = accountRepository.findByAccountName("INVENTORY").orElseThrow(() -> new NoSuchElementException("INVENTORY account not found"));
+        Account mobileMoneyAccount = accountRepository.findByAccountName("MOBILE MONEY").orElseThrow(() -> new NoSuchElementException("MOBILE MONEY account not found"));
 
         double amountInCash = Objects.isNull(saleOrder.getAmountInCash()) ? 0.0 : (saleOrder.getAmountInCash());
         double amountInMobile = Objects.isNull(saleOrder.getAmountInMpesa()) ? 0.0 : (saleOrder.getAmountInMpesa());
@@ -155,11 +271,11 @@ public class OrderService {
         return tranHeader;
     }
 
-    @Bean
-    private void loadAllSalesInAccount() {
-        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow();
+    //    @Bean
+    private void loadAllSalesInAccount() throws CloneNotSupportedException {
+        Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
 
-        if (salesAccount.getBalance() != 0){
+        if (salesAccount.getBalance() != 0) {
             return;
         }
         List<SaleOrder> saleOrders = orderRepository.findAll();
@@ -170,9 +286,10 @@ public class OrderService {
             tranHeaders.add(tranHeader);
         }
 
-        try{tranHeaderService.verifyTransactions(tranHeaders);
+        try {
+            tranHeaderService.verifyTransactions(tranHeaders);
 
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

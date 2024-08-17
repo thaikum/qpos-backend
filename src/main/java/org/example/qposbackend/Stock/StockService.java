@@ -50,7 +50,7 @@ public class StockService {
                                             return StockItem.builder()
                                                     .buyingPrice(stockItemDTO.buyingPrice())
                                                     .packaging(stockItemDTO.packaging())
-                                                    .quantity(stockItemDTO.quantity() * stockItemDTO.packaging())
+                                                    .quantity(stockItemDTO.quantity())
                                                     .item(item)
                                                     .build();
                                         } else {

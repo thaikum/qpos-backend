@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.example.qposbackend.Authorization.Roles.SystemRole;
 import org.example.qposbackend.Authorization.User.Password.Password;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -17,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "system_user")
-public class User {
+public class User{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

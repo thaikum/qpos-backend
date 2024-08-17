@@ -6,6 +6,7 @@ import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -15,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class TranHeader extends IntegrityAttributes {
+public class TranHeader extends IntegrityAttributes{
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long tranId;
@@ -33,4 +34,5 @@ public class TranHeader extends IntegrityAttributes {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name="tran_header_id")
     private List<PartTran> partTrans;
+
 }

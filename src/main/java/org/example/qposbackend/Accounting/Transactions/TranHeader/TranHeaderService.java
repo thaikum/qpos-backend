@@ -27,34 +27,47 @@ public class TranHeaderService {
     private final AccountRepository accountRepository;
     private final SpringSecurityAuditorAware auditorAware;
 
+    public void saveAndVerifyTranHeader(TranHeader tranHeader) {
+        tranHeaderRepository.save(tranHeader);
+        verifyTransaction(tranHeader);
+    }
+
+    //    @Transactional
     public void verifyTransaction(TranHeader tranHeader) {
-        AtomicReference<Double> net = new AtomicReference<>(0.0);
-        User user = auditorAware.getCurrentAuditor().orElseThrow();
+        User user = auditorAware.getCurrentAuditor().orElseThrow(()-> new NoSuchElementException("User not logged in."));
+        Map<String, Double> accountMap = new HashMap<>();
 
-        tranHeader.getPartTrans().forEach(partTran -> {
-            Account account = partTran.getAccount();
-            if (partTran.getTranType().equals('C')) {
-                net.updateAndGet(v -> (v - partTran.getAmount()));
-                account.setBalance(account.getBalance() - partTran.getAmount());
-            } else {
-                net.updateAndGet(v -> (v + partTran.getAmount()));
-                account.setBalance(account.getBalance() + partTran.getAmount());
-            }
+        List<Long> ids = new ArrayList<>();
 
-            account = accountRepository.save(account);
-            partTran.setAccount(account);
-
-            log.info("{}", partTran);
-        });
-
-        if (net.get() != 0.0) {
-            throw new RuntimeException("Transaction must balance");
-        } else {
-            tranHeader.setVerifiedBy(user);
-            tranHeader.setVerifiedDate(new Date());
-            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
-            tranHeaderRepository.save(tranHeader);
+        transactionProcessor(tranHeader, accountMap, ids);
+        tranHeaderRepository.verifyStatusByIds(user.getId(), ids);
+        for (Map.Entry<String, Double> entry : accountMap.entrySet()) {
+            accountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
         }
+    }
+
+    private void transactionProcessor(TranHeader tranHeader, Map<String, Double> accountMap, List<Long> ids) {
+        Double net = 0.0;
+        for (PartTran part : tranHeader.getPartTrans()) {
+            Account account = part.getAccount();
+            accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
+            Double change = accountMap.get(account.getAccountNumber());
+
+            if (part.getTranType().equals('C')) {
+                change -= part.getAmount();
+                net -= part.getAmount();
+            } else {
+                change += part.getAmount();
+                net += part.getAmount();
+            }
+            accountMap.put(account.getAccountNumber(), change);
+        }
+
+        if (net != 0.0) {
+            throw new RuntimeException("Transaction must balance");
+        }
+
+        ids.add(tranHeader.getTranId());
     }
 
 //    @Transactional
@@ -97,32 +110,12 @@ public class TranHeaderService {
 
     @Transactional
     public void verifyTransactions(List<TranHeader> tranHeaders) {
-        User user = auditorAware.getCurrentAuditor().orElseThrow();
+        User user = auditorAware.getCurrentAuditor().orElseThrow(()-> new NoSuchElementException("User not logged in."));
         Map<String, Double> accountMap = new HashMap<>();
 
         List<Long> ids = new ArrayList<>();
         for (TranHeader tranHeader : tranHeaders) {
-            Double net = 0.0;
-            for (PartTran part : tranHeader.getPartTrans()) {
-                Account account = part.getAccount();
-                accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
-                Double change = accountMap.get(account.getAccountNumber());
-
-                if (part.getTranType().equals('C')) {
-                    change -= part.getAmount();
-                    net -= part.getAmount();
-                } else {
-                    change += part.getAmount();
-                    net += part.getAmount();
-                }
-                accountMap.put(account.getAccountNumber(), change);
-            }
-
-            if (net != 0.0) {
-                throw new RuntimeException("Transaction must balance");
-            }
-
-            ids.add(tranHeader.getTranId());
+            transactionProcessor(tranHeader, accountMap, ids);
         }
         log.info("Now saving");
         tranHeaderRepository.verifyStatusByIds(user.getId(), ids);
@@ -139,7 +132,7 @@ public class TranHeaderService {
 
     public void createTransactions(TranHeaderDTO tranHeaderDTO) {
         try {
-            User user = springSecurityAuditorAware.getCurrentAuditor().orElseThrow();
+            User user = springSecurityAuditorAware.getCurrentAuditor().orElseThrow(()-> new NoSuchElementException("User not logged in"));
             TranHeader tranHeader = TranHeader.builder()
                     .postedBy(user)
                     .postedDate(tranHeaderDTO.postedDate())
@@ -153,7 +146,7 @@ public class TranHeaderService {
                         .tranType(partTranDTO.tranType())
                         .amount(partTranDTO.amount())
                         .tranParticulars(partTranDTO.tranParticulars())
-                        .account(accountRepository.findByAccountNumber(partTranDTO.accountNumber()).orElseThrow())
+                        .account(accountRepository.findByAccountNumber(partTranDTO.accountNumber()).orElseThrow(()-> new NoSuchElementException("Account with account number: "+partTranDTO.accountNumber()+" not found.")))
                         .build();
                 partTrans.add(partTran);
             }

@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
 
+import java.util.Date;
+
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Builder
+@Builder(toBuilder = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
