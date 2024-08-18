@@ -27,6 +27,7 @@ public enum PrivilegesEnum {
     VIEW_HISTORICAL_SALES("VIEW HISTORICAL SALES", "SALES"),
     HANDLE_RETURNED_GOODS("HANDLE RETURNED GOODS", "SALES"),
     APPLY_DISCOUNT("OFFER DISCOUNTS", "SALES"),
+    CLOSE_DAY_BOOKS("CLOSE_DAY_BOOKS", "SALES"),
 
     //======================== ROLES ==================================
     VIEW_ROLES("VIEW USER GROUPS", "ROLES"),

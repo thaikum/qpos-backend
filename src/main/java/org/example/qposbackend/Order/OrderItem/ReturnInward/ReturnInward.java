@@ -20,9 +20,11 @@ public class ReturnInward {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Builder.Default
     private int quantityReturned = 0;
     private String returnReason;
     private Date dateSold;
     private Date dateReturned;
+    @Builder.Default
     private Double costIncurred = 0D;
 }

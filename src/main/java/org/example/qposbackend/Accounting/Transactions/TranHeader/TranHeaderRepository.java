@@ -7,8 +7,11 @@ import java.util.Date;
 import java.util.List;
 
 public interface TranHeaderRepository extends JpaRepository<TranHeader, Long> {
-    @Query(nativeQuery = true, value = "select * from tran_header where status =:status and Date(posted_date) between :from and :to")
+    @Query(nativeQuery = true, value = "select * from tran_header where status =:status and Date(posted_date) between DATE(:from) and DATE(:to)")
     List<TranHeader> findAllByStatusAndPostedDateBetween(String status, Date from, Date to);
+
+    @Query(nativeQuery = true, value = "select * from tran_header where status =:status and Date(posted_date) between :from and :to and account_name = :accountName")
+    List<TranHeader> findAllByStatusAndPostedDateBetweenAndAccountName(String status, Date from, Date to, String accountName);
 
     @Query(nativeQuery = true, value = "update tran_header set status = :status where id in :ids")
     List<TranHeader> updateStatusByIds(String status, List<Long> ids);

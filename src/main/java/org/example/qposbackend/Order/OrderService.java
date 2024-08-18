@@ -11,6 +11,8 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
+import org.example.qposbackend.EOD.EOD;
+import org.example.qposbackend.EOD.EODRepository;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
@@ -35,6 +37,7 @@ public class OrderService {
     private final SpringSecurityAuditorAware auditorAware;
     private final OrderItemRepository orderItemRepository;
     private final ReturnInwardRepository returnInwardRepository;
+    private final EODRepository eodRepository;
 
     public List<SaleOrder> fetchByDateRange(Date start, Date end) {
         List<SaleOrder> ordersWithinRange = orderRepository.fetchAllByDateRange(start, end);
@@ -49,16 +52,16 @@ public class OrderService {
     }
 
     public void processOrder(SaleOrder saleOrder) {
+        Date saleDate = getSaleDate();
+
         for (OrderItem orderItem : saleOrder.getOrderItems()) {
             InventoryItem inventoryItem = inventoryItemRepository.findById(orderItem.getInventoryItem().getId()).orElseThrow(() -> new RuntimeException("No inventory found."));
-            System.out.println(orderItem.getQuantity());
-            System.out.println(inventoryItem.getQuantity());
-            System.out.println(inventoryItem.getItem().getName());
             inventoryItem.setQuantity(inventoryItem.getQuantity() - orderItem.getQuantity());
             inventoryItem = inventoryItemRepository.save(inventoryItem);
             orderItem.setInventoryItem(inventoryItem);
         }
 
+        saleOrder.setDate(saleDate);
         tranHeaderService.saveAndVerifyTranHeader(makeSale(saleOrder));
         orderRepository.save(saleOrder);
     }
@@ -67,9 +70,9 @@ public class OrderService {
     public void returnItem(ReturnItemRequest returnItemRequest) {
         OrderItem orderItem = orderItemRepository.findById(returnItemRequest.orderItemId()).orElseThrow(() -> new NoSuchElementException("No item found."));
         SaleOrder saleOrder = orderRepository.findByOrderItems(orderItem).orElseThrow(() -> new NoSuchElementException("Sale not found."));
+        Date saleDate = getSaleDate();
 
         long dateDiff = ChronoUnit.DAYS.between(saleOrder.getDate().toInstant(), new Date().toInstant());
-        System.out.println(dateDiff);
         if (Math.abs(dateDiff) > 30) {
             throw new NotAcceptableException("Items cannot be returned after 30 days.");
         } else if (orderItem.getQuantity() < returnItemRequest.quantity()) {
@@ -81,7 +84,7 @@ public class OrderService {
 
             ReturnInward returnInward = ReturnInward.builder()
                     .quantityReturned(returnItemRequest.quantity())
-                    .dateReturned(new Date())
+                    .dateReturned(saleDate)
                     .dateSold(saleOrder.getDate())
                     .returnReason(returnItemRequest.reason())
                     .costIncurred(returnItemRequest.chargesIncurred())
@@ -94,7 +97,7 @@ public class OrderService {
             tranHeaderService.saveAndVerifyTranHeader(tranHeader);
         } else {
             ReturnInward returnInward = orderItem.getReturnInward();
-            returnInward.setDateReturned(new Date());
+            returnInward.setDateReturned(saleDate);
             orderItemRepository.save(orderItem);
         }
     }
@@ -110,7 +113,7 @@ public class OrderService {
 
         TranHeader tranHeader = TranHeader.builder()
                 .status(TransactionStatus.POSTED.name())
-                .postedDate(new Date())
+                .postedDate(getSaleDate())
                 .postedBy(saleOrder.getCreatedBy())
                 .verifiedBy(user)
                 .status(TransactionStatus.UNVERIFIED.name())
@@ -122,7 +125,7 @@ public class OrderService {
             PartTran tran = PartTran.builder()
                     .tranType('D')
                     .amount(orderItem.getInventoryItem().getBuyingPrice())
-                    .tranParticulars("Returned  " + orderItem.getInventoryItem().getItem().getName())
+                    .tranParticulars("(sales) Returned  " + orderItem.getInventoryItem().getItem().getName())
                     .account(inventoryAccount)
                     .partTranNumber(partTranNumber++)
                     .build();
@@ -131,7 +134,7 @@ public class OrderService {
             tran = PartTran.builder()
                     .tranType('C')
                     .amount(orderItem.getInventoryItem().getBuyingPrice())
-                    .tranParticulars("Cost of returned " + orderItem.getInventoryItem().getItem().getName())
+                    .tranParticulars("(sales) Cost of returned " + orderItem.getInventoryItem().getItem().getName())
                     .account(costOfGoodsAccount)
                     .partTranNumber(partTranNumber++)
                     .build();
@@ -142,7 +145,7 @@ public class OrderService {
             tran = PartTran.builder()
                     .tranType('D')
                     .amount(orderItem.getPrice() - orderItem.getDiscount())
-                    .tranParticulars("Return of " + orderItem.getInventoryItem().getItem().getName())
+                    .tranParticulars("(sales) Return of " + orderItem.getInventoryItem().getItem().getName())
                     .account(salesAccount)
                     .partTranNumber(partTranNumber++)
                     .build();
@@ -151,7 +154,7 @@ public class OrderService {
             tran = PartTran.builder()
                     .tranType('C')
                     .amount(orderItem.getPrice() - orderItem.getDiscount())
-                    .tranParticulars("Return of " + orderItem.getInventoryItem().getItem().getName())
+                    .tranParticulars("(sales) Return of " + orderItem.getInventoryItem().getItem().getName())
                     .account(account)
                     .partTranNumber(partTranNumber++)
                     .build();
@@ -168,7 +171,7 @@ public class OrderService {
 
         TranHeader tranHeader = TranHeader.builder()
                 .status(TransactionStatus.POSTED.name())
-                .postedDate(new Date())
+                .postedDate(getSaleDate())
                 .postedBy(saleOrder.getCreatedBy())
                 .verifiedBy(user)
                 .status(TransactionStatus.UNVERIFIED.name())
@@ -194,7 +197,7 @@ public class OrderService {
                 PartTran tran = PartTran.builder()
                         .tranType('C')
                         .amount(orderItem.getInventoryItem().getBuyingPrice())
-                        .tranParticulars("Sold  " + orderItem.getInventoryItem().getItem().getName())
+                        .tranParticulars("(sales) Sold  " + orderItem.getInventoryItem().getItem().getName())
                         .account(inventoryAccount)
                         .partTranNumber(partTranNumber++)
                         .build();
@@ -203,7 +206,7 @@ public class OrderService {
                 tran = PartTran.builder()
                         .tranType('D')
                         .amount(orderItem.getInventoryItem().getBuyingPrice())
-                        .tranParticulars("Cost of " + orderItem.getInventoryItem().getItem().getName())
+                        .tranParticulars("(sales) Cost of " + orderItem.getInventoryItem().getItem().getName())
                         .account(costOfGoodsAccount)
                         .partTranNumber(partTranNumber++)
                         .build();
@@ -214,7 +217,7 @@ public class OrderService {
                 tran = PartTran.builder()
                         .tranType('C')
                         .amount(orderItem.getPrice() - orderItem.getDiscount())
-                        .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                        .tranParticulars("(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
                         .account(salesAccount)
                         .partTranNumber(partTranNumber++)
                         .build();
@@ -235,7 +238,7 @@ public class OrderService {
                     tran = PartTran.builder()
                             .tranType('D')
                             .amount(orderItem.getPrice() - orderItem.getDiscount())
-                            .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                            .tranParticulars("(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
                             .account(type)
                             .partTranNumber(partTranNumber++)
                             .build();
@@ -247,7 +250,7 @@ public class OrderService {
                     tran = PartTran.builder()
                             .tranType('D')
                             .amount(cash)
-                            .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                            .tranParticulars("(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
                             .account(cashAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
@@ -256,7 +259,7 @@ public class OrderService {
                     tran = PartTran.builder()
                             .tranType('D')
                             .amount(amountInMobile)
-                            .tranParticulars("Sale of " + orderItem.getInventoryItem().getItem().getName())
+                            .tranParticulars("(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
                             .account(mobileMoneyAccount)
                             .partTranNumber(partTranNumber++)
                             .build();
@@ -289,10 +292,29 @@ public class OrderService {
         try {
             tranHeaderService.verifyTransactions(tranHeaders);
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored){
+
         }
 
         log.info("All sales accounted for");
+    }
+
+    private Date getSaleDate(){
+        Optional<EOD> eodOptional = eodRepository.findLastEOD();
+
+        if(eodOptional.isPresent()){
+            EOD eod = eodOptional.get();
+            long dateDiff = ChronoUnit.DAYS.between(new Date().toInstant(), eod.getDate().toInstant());
+            System.out.println("Date diff is: " + dateDiff);
+            if(dateDiff == 0){
+                Calendar tomorrow = Calendar.getInstance();
+                tomorrow.add(Calendar.DATE, 1);
+                return tomorrow.getTime();
+            }else{
+                return new Date();
+            }
+        }else{
+            return new Date();
+        }
     }
 }

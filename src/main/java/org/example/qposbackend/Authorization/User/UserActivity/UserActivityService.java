@@ -8,6 +8,7 @@ import org.example.qposbackend.Configurations.AdminParameters.AdminParametersRep
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,14 +24,13 @@ public class UserActivityService {
 
         if(Objects.equals(adminParameters.getCheckInIp(), request.getRemoteAddr())) {
             UserActivity userActivity = new UserActivity();
-            User user = springSecurityAuditorAware.getCurrentAuditor().get();
+            userActivity.setTimeIn(new Date());
+            User user = springSecurityAuditorAware.getCurrentAuditor().orElseThrow(()->new NoSuchElementException("User not logged in"));
             userActivity.setUser(user);
             userActivityRepository.save(userActivity);
         }else{
             throw new RuntimeException("Make sure you are at the shop before checking in");
         }
-
-
     }
 
     public void checkOut(HttpServletRequest request) {

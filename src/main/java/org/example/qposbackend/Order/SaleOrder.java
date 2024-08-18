@@ -25,4 +25,5 @@ public class SaleOrder extends IntegrityAttributes {
     private String modeOfPayment;
     private Double amountInCash;
     private Double amountInMpesa;
+    private Double amountInCredit;
 }

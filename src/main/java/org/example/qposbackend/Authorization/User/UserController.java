@@ -45,7 +45,6 @@ public class UserController {
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.email().trim(), authRequest.password().trim()));
             User user = userRepository.findUserByEmail(authRequest.email()).get();
-            System.out.println("User is " + user);
             String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
             LoginResponse response = new LoginResponse(token, user);
             return ResponseEntity.ok(new DataResponse(response, null));

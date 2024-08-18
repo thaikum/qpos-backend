@@ -23,7 +23,6 @@ public class PrivilegesService {
 
         for (PrivilegesEnum privilegesEnum : PrivilegesEnum.values()) {
             if (!oldPrivileges.contains(privilegesEnum.name())) {
-                System.out.println("Privilege was: "+privilegesEnum.name());
                 newPrivileges.add(Privilege.builder().privilege(privilegesEnum.name()).build());
             }
         }

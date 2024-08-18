@@ -22,7 +22,6 @@ public class ItemController {
             byte [] imageBytes = itemService.serveImage(imageName);
             return ResponseEntity.ok().body(imageBytes);
         }catch (Exception exception){
-            System.out.println("Image not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
 

@@ -64,6 +64,9 @@ public class HttpConfigurer {
                         .requestMatchers(HttpMethod.POST, "order/get-by-range").denyAll()
                         .requestMatchers(HttpMethod.POST, "order/return-item").hasAnyAuthority(PrivilegesEnum.HANDLE_RETURNED_GOODS.name())
 
+                        // ================================ EOD =================================================
+                        .requestMatchers(HttpMethod.POST, "eod").hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
+
                         //================================= INVENTORY ===========================================
                         .requestMatchers(HttpMethod.GET, "inventory").hasAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
                         .requestMatchers(HttpMethod.POST, "inventory").hasAuthority(PrivilegesEnum.ADD_INVENTORY_ITEM.name())
