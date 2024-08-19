@@ -66,6 +66,7 @@ public class HttpConfigurer {
 
                         // ================================ EOD =================================================
                         .requestMatchers(HttpMethod.POST, "eod").hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
+                        .requestMatchers(HttpMethod.POST, "eod/fetch-by-range").hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
 
                         //================================= INVENTORY ===========================================
                         .requestMatchers(HttpMethod.GET, "inventory").hasAuthority(PrivilegesEnum.VIEW_INVENTORY.name())

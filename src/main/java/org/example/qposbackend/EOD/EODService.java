@@ -3,17 +3,16 @@ package org.example.qposbackend.EOD;
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTranRepository;
+import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.DTOs.EndOfDayDTO;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.Order.OrderService;
 import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,21 +20,23 @@ public class EODService {
     private final OrderService orderService;
     private final EODRepository eoDRepository;
     private final PartTranRepository partTranRepository;
+    private final SpringSecurityAuditorAware auditorAware;
 
     public void performEndOfDay(EndOfDayDTO endOfDayDTO) {
         CurAssets totalSales = getTodaySales();
         double totalCashSale = totalSales.cashTotal;
         double totalMobileSale = totalSales.mobileTotal;
         double totalReceivables = endOfDayDTO.totalRecoveredDebt() + endOfDayDTO.balanceBroughtDownCash() + endOfDayDTO.balanceBroughtDownMobile();
+        User user = auditorAware.getCurrentAuditor().orElseThrow(() -> new NoSuchElementException("User not found"));
 
         Optional<EOD> previousEodOpt = eoDRepository.findLastEOD();
-        EOD eod = EOD.builder().date(new Date()).balanceBroughtDownCash(endOfDayDTO.balanceBroughtDownCash()).totalDebtors(totalSales.debtTotal).balanceBroughtDownMobile(endOfDayDTO.balanceBroughtDownMobile()).totalCashSale(totalCashSale).totalMobileSale(totalMobileSale).build();
+        EOD eod = EOD.builder().date(new Date()).balanceBroughtDownCash(endOfDayDTO.balanceBroughtDownCash()).totalDebtors(totalSales.debtTotal).balanceBroughtDownMobile(endOfDayDTO.balanceBroughtDownMobile()).totalCashSale(totalCashSale).totalMobileSale(totalMobileSale).user(user).build();
 
         if (previousEodOpt.isPresent()) {
             EOD previousEod = previousEodOpt.get();
             long dateDiff = ChronoUnit.DAYS.between(new Date().toInstant(), eod.getDate().toInstant());
 
-            if(dateDiff == 0){
+            if (dateDiff == 0) {
                 throw new NotAcceptableException("End of Day cannot be done twice in the same day");
             }
 
@@ -47,8 +48,9 @@ public class EODService {
             //update total debtors
             double previousDebt = Objects.isNull(previousEod.getTotalDebtors()) ? 0 : previousEod.getTotalDebtors();
             eod.setTotalDebtors(previousDebt - endOfDayDTO.totalRecoveredDebt() + totalSales.debtTotal);
+            double mpesaCost = totalMobileSale * 0.50 / 100 * 2;
 
-            if (expectedTotal != totalReceivables) {
+            if (Math.abs(expectedTotal - totalReceivables) > mpesaCost) {
                 throw new NotAcceptableException("The expected amount and current amount do not match! There is a difference of " + (expectedTotal - totalReceivables) + ". Make sure all sales and non-sale transactions are well recorded and verified.");
             }
         }

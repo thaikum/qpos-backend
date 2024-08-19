@@ -292,28 +292,30 @@ public class OrderService {
         try {
             tranHeaderService.verifyTransactions(tranHeaders);
 
-        } catch (Exception ignored){
+        } catch (Exception ignored) {
 
         }
 
         log.info("All sales accounted for");
     }
 
-    private Date getSaleDate(){
+    private Date getSaleDate() {
         Optional<EOD> eodOptional = eodRepository.findLastEOD();
 
-        if(eodOptional.isPresent()){
+        if (eodOptional.isPresent()) {
             EOD eod = eodOptional.get();
             long dateDiff = ChronoUnit.DAYS.between(new Date().toInstant(), eod.getDate().toInstant());
-            System.out.println("Date diff is: " + dateDiff);
-            if(dateDiff == 0){
+            System.out.println(dateDiff);
+            if (dateDiff == 0) {
                 Calendar tomorrow = Calendar.getInstance();
                 tomorrow.add(Calendar.DATE, 1);
                 return tomorrow.getTime();
+            } else if (Math.abs(dateDiff) > 1) {
+                throw new NotAcceptableException("You cannot start sales before performing yesterday's End Of Day.");
             }else{
                 return new Date();
             }
-        }else{
+        } else {
             return new Date();
         }
     }
