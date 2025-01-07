@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderController {
-    private final OrderRepository orderRepository;
     private final OrderService orderService;
 
     @PostMapping

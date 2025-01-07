@@ -112,6 +112,11 @@ public class HttpConfigurer {
                         .requestMatchers("reports/account_statement").hasAnyAuthority(PrivilegesEnum.VIEW_ACCOUNT_STATEMENT_REPORT.name())
                         .requestMatchers("reports/restocking_report").hasAnyAuthority(PrivilegesEnum.VIEW_RESTOCKING_ESTIMATES.name())
 
+                        //=================================== OFFERS =================================================
+                        .requestMatchers(HttpMethod.POST, "/offers").hasAnyAuthority(PrivilegesEnum.CREATE_OFFER.name())
+                        .requestMatchers(HttpMethod.GET, "offers").hasAnyAuthority(PrivilegesEnum.MAKE_SALE.name(), PrivilegesEnum.CREATE_OFFER.name(), PrivilegesEnum.VIEW_OFFER.name())
+                        .requestMatchers(HttpMethod.POST, "offers/get-offers_on_order").hasAnyAuthority(PrivilegesEnum.MAKE_SALE.name())
+
                         // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()
                         .anyRequest().denyAll()

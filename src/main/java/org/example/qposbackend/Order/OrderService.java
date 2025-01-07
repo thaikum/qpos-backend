@@ -23,6 +23,7 @@ import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInwardReposito
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -223,8 +224,6 @@ public class OrderService {
                         .build();
                 partTranList.add(tran);
 
-                Double amtT = tran.getAmount();
-
                 Account type = null;
                 if (amountInCash >= orderItem.getPrice() - orderItem.getDiscount()) {
                     type = cashAccount;
@@ -304,15 +303,14 @@ public class OrderService {
 
         if (eodOptional.isPresent()) {
             EOD eod = eodOptional.get();
-            long dateDiff = ChronoUnit.DAYS.between(new Date().toInstant(), eod.getDate().toInstant());
-            System.out.println(dateDiff);
+            long dateDiff = ChronoUnit.DAYS.between(LocalDate.now(), eod.getDate());
             if (dateDiff == 0) {
                 Calendar tomorrow = Calendar.getInstance();
                 tomorrow.add(Calendar.DATE, 1);
                 return tomorrow.getTime();
             } else if (Math.abs(dateDiff) > 1) {
                 throw new NotAcceptableException("You cannot start sales before performing yesterday's End Of Day.");
-            }else{
+            } else {
                 return new Date();
             }
         } else {

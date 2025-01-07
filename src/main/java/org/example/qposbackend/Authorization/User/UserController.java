@@ -42,14 +42,17 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<DataResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
+
+        System.out.println("Attempted");
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.email().trim(), authRequest.password().trim()));
-            User user = userRepository.findUserByEmail(authRequest.email()).get();
+            User user = userRepository.findUserByEmail(authRequest.email()).orElseThrow();
             String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
             LoginResponse response = new LoginResponse(token, user);
+            System.out.println("User found");
             return ResponseEntity.ok(new DataResponse(response, null));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.out.println("User not found");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new DataResponse(null, "Invalid!"));
         }
     }

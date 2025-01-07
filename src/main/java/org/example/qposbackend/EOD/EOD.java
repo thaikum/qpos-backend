@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Authorization.User.User;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -19,8 +21,10 @@ public class EOD {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Builder.Default
-    private Date date = new Date();
-    @OneToOne
+    private LocalDate date = LocalDate.now();
+    @Builder.Default
+    private LocalDateTime timestamp = LocalDateTime.now();
+    @ManyToOne
     private User user;
     @Builder.Default
     private Double balanceBroughtDownCash = 0D;

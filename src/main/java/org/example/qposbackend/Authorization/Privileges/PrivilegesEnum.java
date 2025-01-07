@@ -59,7 +59,14 @@ public enum PrivilegesEnum {
     //================================ REPORTS ==============================
     VIEW_PROFIT_AND_LOSS_REPORT("VIEW PROFIT AND LOSS REPORT", "REPORTS"),
     VIEW_ACCOUNT_STATEMENT_REPORT("VIEW ACCOUNT STATEMENT REPORT", "REPORTS"),
-    VIEW_RESTOCKING_ESTIMATES("VIEW RESTOCKING ESTIMATES", "REPORTS");
+    VIEW_RESTOCKING_ESTIMATES("VIEW RESTOCKING ESTIMATES", "REPORTS"),
+
+    //================================== PROMOTIONS AND OFFERS ===============
+    CREATE_OFFER("CREATE OFFER", "PROMOTIONS AND OFFERS"),
+    VIEW_OFFER("VIEW OFFER", "PROMOTIONS AND OFFERS"),
+    UPDATE_OFFER("UPDATE OFFER", "PROMOTIONS AND OFFERS");
+
+
 
     private final String displayName;
     private final String category;

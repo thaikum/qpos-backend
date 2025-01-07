@@ -68,7 +68,7 @@ public class StockService {
         }
     }
 
-    @Bean
+//    @Bean
     private void loadCsv() throws IOException {
         List<String> lines = Files.readAllLines(Path.of(resources +"/initial/merged_price_mapping.csv"));
         List<StockItem> stockItems = new ArrayList<>();

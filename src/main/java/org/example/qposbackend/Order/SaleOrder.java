@@ -20,10 +20,9 @@ public class SaleOrder extends IntegrityAttributes {
     @JoinColumn
     private List<OrderItem> orderItems;
     private double discount;
-    @Temporal(TemporalType.TIMESTAMP)
     private Date date = new Date();
     private String modeOfPayment;
-    private Double amountInCash;
-    private Double amountInMpesa;
-    private Double amountInCredit;
+    private Double amountInCash = 0D;
+    private Double amountInMpesa = 0D;
+    private Double amountInCredit = 0D;
 }
