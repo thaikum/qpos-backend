@@ -21,7 +21,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.access.AccessDeniedException;
 
 
 @Configuration
@@ -117,6 +116,8 @@ public class HttpConfigurer {
                         .requestMatchers(HttpMethod.GET, "offers").hasAnyAuthority(PrivilegesEnum.MAKE_SALE.name(), PrivilegesEnum.CREATE_OFFER.name(), PrivilegesEnum.VIEW_OFFER.name())
                         .requestMatchers(HttpMethod.POST, "offers/get-offers_on_order").hasAnyAuthority(PrivilegesEnum.MAKE_SALE.name())
 
+                        //=================================== CATEGORIES ==============================================
+                        .requestMatchers(HttpMethod.GET, "categories", "main-categories", "sub-categories").hasAnyAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
                         // ================================= OTHERS ===============================================
                         .requestMatchers("/users/login").permitAll()
                         .anyRequest().denyAll()

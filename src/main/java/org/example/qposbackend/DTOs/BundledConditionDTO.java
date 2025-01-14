@@ -4,8 +4,7 @@ import lombok.Data;
 
 @Data
 public class BundledConditionDTO {
-    private Long itemId;
+    private Long valueId;
     private Integer minQuantity;
-    private String category;
     private Double minAmount;
 }

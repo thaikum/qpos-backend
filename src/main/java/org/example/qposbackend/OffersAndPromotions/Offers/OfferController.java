@@ -22,6 +22,7 @@ public class OfferController {
             return ResponseEntity.ok(new MessageResponse("Successfully created offer"));
         }catch (Exception e) {
             //todo use 406
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(new MessageResponse("Error creating offer"));
         }
     }

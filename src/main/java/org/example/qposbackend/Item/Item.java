@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategory;
 
 @Entity
 @Data
@@ -25,6 +26,9 @@ public class Item{
     @Column(length = 50)
     private String category;
     private String subCategory;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "sub_category_id")
+    private SubCategory subCategoryId;
     private Double buyingPrice;
     private Double minSellingPrice;
     private Double maxSellingPrice;
