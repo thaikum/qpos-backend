@@ -6,7 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.InventoryItem.InventoryItem;
+import org.example.qposbackend.OffersAndPromotions.Offers.Offer;
 import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInward;
+
+import java.util.List;
 
 @Entity
 @Data
@@ -27,4 +30,6 @@ public class OrderItem {
     @OneToOne
     @JoinColumn
     private ReturnInward returnInward;
+    @ManyToMany
+    private List<Offer> offersApplied;
 }

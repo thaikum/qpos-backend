@@ -54,11 +54,11 @@ public class TranHeaderService {
             Double change = accountMap.get(account.getAccountNumber());
 
             if (part.getTranType().equals('C')) {
-                change -= part.getAmount();
-                net -= part.getAmount();
-            } else {
                 change += part.getAmount();
                 net += part.getAmount();
+            } else {
+                change -= part.getAmount();
+                net -= part.getAmount();
             }
             accountMap.put(account.getAccountNumber(), change);
         }

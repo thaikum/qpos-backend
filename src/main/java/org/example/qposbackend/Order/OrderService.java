@@ -16,6 +16,7 @@ import org.example.qposbackend.EOD.EODRepository;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
+import org.example.qposbackend.OffersAndPromotions.Offers.OfferService;
 import org.example.qposbackend.Order.OrderItem.OrderItem;
 import org.example.qposbackend.Order.OrderItem.OrderItemRepository;
 import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInward;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +41,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final ReturnInwardRepository returnInwardRepository;
     private final EODRepository eodRepository;
+    private final OfferService offerService;
 
     public List<SaleOrder> fetchByDateRange(Date start, Date end) {
         List<SaleOrder> ordersWithinRange = orderRepository.fetchAllByDateRange(start, end);
@@ -52,11 +55,27 @@ public class OrderService {
         return ordersWithinRange;
     }
 
+    @Transactional
     public void processOrder(SaleOrder saleOrder) {
         Date saleDate = getSaleDate();
 
+        saleOrder.setOrderItems(
+                saleOrder.getOrderItems()
+                        .stream()
+                        .peek((orderItem -> {
+                            InventoryItem inventoryItem = inventoryItemRepository.findById(orderItem.getInventoryItem().getId()).orElseThrow(() -> new RuntimeException("No inventory found."));
+                            if (orderItem.getDiscount() > inventoryItem.getDiscountAllowed()) {
+                                throw new NotAcceptableException("Maximum discount for " + inventoryItem.getItem().getName() + " is " + inventoryItem.getDiscountAllowed());
+                            }
+                            orderItem.setInventoryItem(inventoryItem);
+                        }))
+                        .collect(Collectors.toCollection(ArrayList::new))
+        );
+
+
+        saleOrder = offerService.getOffersToApply(saleOrder).saleOrder(); //get the offers
         for (OrderItem orderItem : saleOrder.getOrderItems()) {
-            InventoryItem inventoryItem = inventoryItemRepository.findById(orderItem.getInventoryItem().getId()).orElseThrow(() -> new RuntimeException("No inventory found."));
+            InventoryItem inventoryItem = orderItem.getInventoryItem();
             inventoryItem.setQuantity(inventoryItem.getQuantity() - orderItem.getQuantity());
             inventoryItem = inventoryItemRepository.save(inventoryItem);
             orderItem.setInventoryItem(inventoryItem);
@@ -105,8 +124,8 @@ public class OrderService {
 
     private TranHeader returnItemTransactions(SaleOrder saleOrder, OrderItem orderItem, int quantity) {
         User user = auditorAware.getCurrentAuditor().orElseThrow(() -> new NoSuchElementException("User not found"));
-        Double amountSpent = (orderItem.getReturnInward().getQuantityReturned() * orderItem.getInventoryItem().getSellingPrice()) - orderItem.getDiscount();
-        String accountName = saleOrder.getAmountInCash() >= amountSpent ? "CASH" : "MOBILE MONEY";
+//        Double amountSpent = (orderItem.getReturnInward().getQuantityReturned() * orderItem.getInventoryItem().getSellingPrice()) - orderItem.getDiscount();
+        String accountName = "CASH";
         Account account = accountRepository.findByAccountName(accountName).orElseThrow(() -> new NoSuchElementException(accountName + " account not found."));
         Account costOfGoodsAccount = accountRepository.findByAccountName("COST OF GOODS").orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
         Account salesAccount = accountRepository.findByAccountName("SALES REVENUE").orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));

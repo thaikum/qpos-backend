@@ -145,15 +145,23 @@ public class OfferService {
                     if (cheapestItem.isPresent()) {
                         var inventoryItem = cheapestItem.get();
                         OrderItem orderItem = OrderItem.builder()
-                                .discount(0)
+                                .discount(inventoryItem.getSellingPrice())
                                 .inventoryItem(inventoryItem)
                                 .price(inventoryItem.getSellingPrice())
                                 .quantity(1)
+                                .offersApplied(List.of(offer))
                                 .build();
 
+                        order.getOrderItems().add(orderItem);
                         appliedOffersAndTotalDiscount.add(new AppliedOffersAndTotalDiscount(offer, inventoryItem.getSellingPrice(), List.of(orderItem)));
                     }
                 } else {
+                    for(var item: order.getOrderItems()){
+                        item.setDiscount(item.getDiscount() + (applied.totalDiscount() / order.getOrderItems().size()));
+                        List<Offer> offerOnItem = Optional.ofNullable(item.getOffersApplied()).orElse(new ArrayList<>());
+                        offerOnItem.add(offer);
+                        item.setOffersApplied(offerOnItem);
+                    }
                     appliedOffersAndTotalDiscount.add(applied);
                 }
             }

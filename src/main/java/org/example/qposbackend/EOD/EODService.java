@@ -37,9 +37,6 @@ public class EODService {
 
         EOD eod = EOD.builder().date(LocalDate.now()).balanceBroughtDownCash(endOfDayDTO.balanceBroughtDownCash()).totalDebtors(totalSales.debtTotal).balanceBroughtDownMobile(endOfDayDTO.balanceBroughtDownMobile()).totalCashSale(totalCashSale).totalMobileSale(totalMobileSale).user(user).build();
 
-        System.out.println("Cash: "+totalCashSale);
-        System.out.println("Mobile: "+totalMobileSale);
-        System.out.println("Total sales are: " + (totalCashSale + totalMobileSale));
         if (previousEodOpt.isPresent()) {
             EOD previousEod = previousEodOpt.get();
 
@@ -57,7 +54,7 @@ public class EODService {
             double previousDayTotal = getPreviousDayTotal(endOfDayDTO, previousEod);
             CurAssets nonSaleTotals = getCashAndMobileDebits(eod.getDate());
             double nonSaleTransactions = nonSaleTotals.cashTotal + nonSaleTotals.mobileTotal;
-            System.out.println("Non sale are: "+nonSaleTransactions);
+            System.out.println("Non sale are: " + nonSaleTransactions);
             double expectedTotal = previousDayTotal + nonSaleTransactions + totalCashSale + totalMobileSale;
 
             //update total debtors
@@ -66,7 +63,12 @@ public class EODService {
             double mpesaCost = totalMobileSale * 0.50 / 100 * 2;
 
             if (Math.abs(expectedTotal - totalReceivables) > mpesaCost) {
-                throw new NotAcceptableException("The expected amount and current amount do not match! There is a difference of " + (expectedTotal - totalReceivables) + ". Make sure all sales and non-sale transactions are well recorded and verified.");
+                throw new NotAcceptableException("""
+                        Transactions failed to balance. <br/>
+                        Expected: <b>Sh %.2f</b> <br/>
+                        Available: <b>Sh %.2f</b> <br/>
+                        Difference: <b>Sh %.2f</b> <br/>
+                        """.formatted(expectedTotal, totalReceivables, expectedTotal - totalReceivables));
             }
         }
         eoDRepository.save(eod);
@@ -95,35 +97,38 @@ public class EODService {
             double mobileMoney = Optional.ofNullable(saleOrder.getAmountInMpesa()).orElse(0D);
             totalDebtOwed += Optional.ofNullable(saleOrder.getAmountInCredit()).orElse(0D);
 
-            double sale = saleOrder.getOrderItems().stream().mapToDouble((order) -> {
-                double discount = Optional.ofNullable(order.getInventoryItem().getDiscountAllowed()).orElse(0D) > 0D ? order.getInventoryItem().getDiscountAllowed() : 0;
-                if (Objects.isNull(order.getReturnInward())) {
-                    return order.getQuantity() * (order.getPrice() - discount);
+            double sale = saleOrder.getOrderItems().stream().mapToDouble((orderItem) -> {
+                double discount = Optional.ofNullable(orderItem.getInventoryItem().getDiscountAllowed()).orElse(0D) > 0D ? orderItem.getInventoryItem().getDiscountAllowed() : 0;
+
+                if (Objects.isNull(orderItem.getReturnInward())) {
+                    return orderItem.getQuantity() * (orderItem.getPrice() - discount);
                 } else {
-                    return -(order.getReturnInward().getQuantityReturned() * (order.getPrice() - discount)); //subtract all returned goods.
+                    return -(orderItem.getReturnInward().getQuantityReturned() * (orderItem.getPrice() - discount)); //subtract all returned goods.
                 }
             }).sum() - totalDebtOwed;
 
-            if(cash >= sale){
+            if (cash >= sale) {
                 totalCashSale += sale;
-            }else{
+            } else if (mobileMoney >= sale) {
+                totalMobileSale += sale;
+            } else {
                 totalMobileSale += mobileMoney;
-                if(mobileMoney < sale){
+                if (mobileMoney < sale) {
                     totalCashSale += (sale - mobileMoney);
                 }
             }
         }
 
+        System.out.println("Total mobile money sale is: " + totalMobileSale);
         return new CurAssets(totalCashSale, totalMobileSale, totalDebtOwed);
     }
 
     private CurAssets getCashAndMobileDebits(LocalDate localDate) {
-        List<PartTran> cashTransactions = partTranRepository.findAllNonSaleVerifiedByVerifiedDateBetweenAndAccountName(localDate, localDate, "CASH");
-        List<PartTran> mobileMoneyTransactions = partTranRepository.findAllNonSaleVerifiedByVerifiedDateBetweenAndAccountName(localDate, localDate, "MOBILE MONEY");
+        List<PartTran> cashTransactions = partTranRepository.findAllNonSaleVerifiedByVerifiedDateBetweenAndAccountName(localDate, LocalDate.now(), "CASH");
+        List<PartTran> mobileMoneyTransactions = partTranRepository.findAllNonSaleVerifiedByVerifiedDateBetweenAndAccountName(localDate, LocalDate.now(), "MOBILE MONEY");
 
-        double totalNonSaleCash = cashTransactions.stream().mapToDouble((partTran) -> partTran.getTranType() == 'C' ? partTran.getAmount() : -partTran.getAmount()).sum();
-        System.out.println(totalNonSaleCash);
-        double totalNonSaleMobile = mobileMoneyTransactions.stream().mapToDouble((partTran) -> partTran.getTranType() == 'C' ? partTran.getAmount() : -partTran.getAmount()).sum();
+        double totalNonSaleCash = cashTransactions.stream().mapToDouble((partTran) -> partTran.getTranType() == 'D' ? partTran.getAmount() : -partTran.getAmount()).sum();
+        double totalNonSaleMobile = mobileMoneyTransactions.stream().mapToDouble((partTran) -> partTran.getTranType() == 'D' ? partTran.getAmount() : -partTran.getAmount()).sum();
         ;
 
         return new CurAssets(totalNonSaleCash, totalNonSaleMobile, null);
