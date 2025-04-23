@@ -1,5 +1,6 @@
 package org.example.qposbackend.Order.OrderItem;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,8 @@ public class OrderItem {
     private InventoryItem inventoryItem;
     private int quantity;
     private double price;
+    @JsonIgnore
+    private double buyingPrice;
     private double discount;
     @Column(length = 20)
     private String discountMode;

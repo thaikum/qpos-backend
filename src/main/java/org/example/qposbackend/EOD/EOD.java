@@ -5,11 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Authorization.User.User;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -42,4 +43,7 @@ public class EOD {
     private Double totalCashSale  = 0D;
     @Builder.Default
     private Double totalMobileSale  = 0D;
+    @OneToMany
+    @JoinTable(name = "eod_parttrans")
+    private List<PartTran> involvedTransactions;
 }

@@ -1,0 +1,114 @@
+Exception in thread "main" java.lang.ClassNotFoundException: org.example.qposbackend.QposBackendApplication
+	at java.base/java.net.URLClassLoader$1.run(URLClassLoader.java:429)
+	at java.base/java.net.URLClassLoader$1.run(URLClassLoader.java:421)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.base/java.net.URLClassLoader.findClass(URLClassLoader.java:420)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:592)
+	at org.springframework.boot.loader.net.protocol.jar.JarUrlClassLoader.loadClass(JarUrlClassLoader.java:104)
+	at org.springframework.boot.loader.launch.LaunchedClassLoader.loadClass(LaunchedClassLoader.java:91)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:525)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:467)
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:88)
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:53)
+	at org.springframework.boot.loader.launch.JarLauncher.main(JarLauncher.java:58)
+Caused by: java.io.IOException: Zip 'Local File Header Record' not found at position 384595
+	at org.springframework.boot.loader.zip.ZipLocalFileHeaderRecord.load(ZipLocalFileHeaderRecord.java:118)
+	at org.springframework.boot.loader.zip.ZipContent$Entry.getContent(ZipContent.java:802)
+	at org.springframework.boot.loader.zip.ZipContent$Entry.openContent(ZipContent.java:792)
+	at org.springframework.boot.loader.jar.NestedJarFile$JarEntryInputStream.<init>(NestedJarFile.java:708)
+	at org.springframework.boot.loader.jar.NestedJarFile.getInputStream(NestedJarFile.java:359)
+	at org.springframework.boot.loader.jar.NestedJarFile.getInputStream(NestedJarFile.java:347)
+	at org.springframework.boot.loader.net.protocol.jar.JarUrlConnection$ConnectionInputStream.getDelegateInputStream(JarUrlConnection.java:393)
+	at org.springframework.boot.loader.net.protocol.jar.LazyDelegatingInputStream.in(LazyDelegatingInputStream.java:87)
+	at org.springframework.boot.loader.net.protocol.jar.LazyDelegatingInputStream.read(LazyDelegatingInputStream.java:43)
+	at java.base/jdk.internal.loader.Resource.getBytes(Resource.java:126)
+	at java.base/java.net.URLClassLoader.defineClass(URLClassLoader.java:519)
+	at java.base/java.net.URLClassLoader$1.run(URLClassLoader.java:427)
+	... 12 more
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.4)
+
+2025-02-11T12:33:20.560+03:00  INFO 89707 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : Starting QposBackendApplication v0.0.1-SNAPSHOT using Java 17.0.14 with PID 89707 (/home/pos/QposBackend-0.0.1-SNAPSHOT.jar started by root in /home/pos)
+2025-02-11T12:33:20.573+03:00  INFO 89707 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : No active profile set, falling back to 1 default profile: "default"
+2025-02-11T12:33:23.439+03:00  INFO 89707 --- [QposBackend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-02-11T12:33:23.760+03:00  INFO 89707 --- [QposBackend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 308 ms. Found 21 JPA repository interfaces.
+2025-02-11T12:33:25.577+03:00  INFO 89707 --- [QposBackend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-02-11T12:33:25.603+03:00  INFO 89707 --- [QposBackend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-02-11T12:33:25.603+03:00  INFO 89707 --- [QposBackend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2025-02-11T12:33:25.988+03:00  INFO 89707 --- [QposBackend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-02-11T12:33:25.994+03:00  INFO 89707 --- [QposBackend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 5243 ms
+2025-02-11T12:33:26.472+03:00  INFO 89707 --- [QposBackend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-02-11T12:33:26.591+03:00  INFO 89707 --- [QposBackend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.2.Final
+2025-02-11T12:33:26.679+03:00  INFO 89707 --- [QposBackend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-02-11T12:33:27.361+03:00  INFO 89707 --- [QposBackend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-02-11T12:33:27.409+03:00  INFO 89707 --- [QposBackend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-02-11T12:33:27.784+03:00  INFO 89707 --- [QposBackend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@25d0b918
+2025-02-11T12:33:27.787+03:00  INFO 89707 --- [QposBackend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-02-11T12:33:27.878+03:00  WARN 89707 --- [QposBackend] [           main] org.hibernate.dialect.Dialect            : HHH000511: The 10.3.39 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
+2025-02-11T12:33:32.573+03:00  INFO 89707 --- [QposBackend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-02-11T12:33:32.687+03:00  WARN 89707 --- [QposBackend] [           main] o.m.jdbc.message.server.ErrorPacket      : Error: 1072-42000: Key column 'sub_category' doesn't exist in table
+2025-02-11T12:33:32.833+03:00  INFO 89707 --- [QposBackend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-02-11T12:33:34.001+03:00  INFO 89707 --- [QposBackend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-02-11T12:33:36.890+03:00  INFO 89707 --- [QposBackend] [           main] o.e.q.A.Privileges.PrivilegesService     : Privileges are: []
+Not found inventory item: HP 2GB FLASH
+Not found inventory item: SANDISK 4GB FLASH
+Not found inventory item: TOSHIBA 64 GB
+Not found inventory item: SANDISK 64GB FLASH
+Not found inventory item: YBS EARPHONES 
+Not found inventory item: GMA ORIGINAL
+Not found inventory item: LENOVO BIG LAPTOP CHARGER
+Not found inventory item: BONTEL L200 PHONE
+Not found inventory item: OKING 0K135 PHONE
+2025-02-11T12:33:38.940+03:00  WARN 89707 --- [QposBackend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-02-11T12:33:39.892+03:00  INFO 89707 --- [QposBackend] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@4064cd60, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5243ce45, org.springframework.security.web.context.SecurityContextHolderFilter@278e5f8e, org.springframework.security.web.header.HeaderWriterFilter@73021987, org.springframework.web.filter.CorsFilter@44046b0d, org.springframework.security.web.authentication.logout.LogoutFilter@28a4ac78, org.example.qposbackend.Security.Jwt.JwtAuthFilter@5c815478, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@16e3a461, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@7e2723d2, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@5f1908c5, org.springframework.security.web.access.ExceptionTranslationFilter@26d63c94, org.springframework.security.web.access.intercept.AuthorizationFilter@1e019687]
+2025-02-11T12:33:40.835+03:00  INFO 89707 --- [QposBackend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-02-11T12:33:40.893+03:00  INFO 89707 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : Started QposBackendApplication in 21.585 seconds (process running for 23.166)
+2025-02-11T12:33:53.441+03:00  INFO 89707 --- [QposBackend] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-02-11T12:33:53.441+03:00  INFO 89707 --- [QposBackend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-02-11T12:33:53.445+03:00  INFO 89707 --- [QposBackend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.4)
+
+2025-02-11T12:36:29.554+03:00  INFO 89854 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : Starting QposBackendApplication v0.0.1-SNAPSHOT using Java 17.0.14 with PID 89854 (/home/pos/QposBackend-0.0.1-SNAPSHOT.jar started by root in /home/pos)
+2025-02-11T12:36:29.561+03:00  INFO 89854 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : No active profile set, falling back to 1 default profile: "default"
+2025-02-11T12:36:32.736+03:00  INFO 89854 --- [QposBackend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-02-11T12:36:33.051+03:00  INFO 89854 --- [QposBackend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 296 ms. Found 21 JPA repository interfaces.
+2025-02-11T12:36:34.829+03:00  INFO 89854 --- [QposBackend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-02-11T12:36:34.860+03:00  INFO 89854 --- [QposBackend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-02-11T12:36:34.861+03:00  INFO 89854 --- [QposBackend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2025-02-11T12:36:35.261+03:00  INFO 89854 --- [QposBackend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-02-11T12:36:35.269+03:00  INFO 89854 --- [QposBackend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 5553 ms
+2025-02-11T12:36:35.805+03:00  INFO 89854 --- [QposBackend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-02-11T12:36:35.934+03:00  INFO 89854 --- [QposBackend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.2.Final
+2025-02-11T12:36:36.034+03:00  INFO 89854 --- [QposBackend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-02-11T12:36:36.859+03:00  INFO 89854 --- [QposBackend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-02-11T12:36:36.928+03:00  INFO 89854 --- [QposBackend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-02-11T12:36:37.185+03:00  INFO 89854 --- [QposBackend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@173b1af1
+2025-02-11T12:36:37.187+03:00  INFO 89854 --- [QposBackend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-02-11T12:36:37.304+03:00  WARN 89854 --- [QposBackend] [           main] org.hibernate.dialect.Dialect            : HHH000511: The 10.3.39 version for [org.hibernate.dialect.MariaDBDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 10.4.0. Check the community dialects project for available legacy versions.
+2025-02-11T12:36:41.481+03:00  INFO 89854 --- [QposBackend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-02-11T12:36:41.583+03:00  WARN 89854 --- [QposBackend] [           main] o.m.jdbc.message.server.ErrorPacket      : Error: 1072-42000: Key column 'sub_category' doesn't exist in table
+2025-02-11T12:36:41.747+03:00  INFO 89854 --- [QposBackend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-02-11T12:36:42.957+03:00  INFO 89854 --- [QposBackend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-02-11T12:36:45.828+03:00  INFO 89854 --- [QposBackend] [           main] o.e.q.A.Privileges.PrivilegesService     : Privileges are: []
+2025-02-11T12:36:46.925+03:00  WARN 89854 --- [QposBackend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-02-11T12:36:47.647+03:00  INFO 89854 --- [QposBackend] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@513f8279, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2d5cb059, org.springframework.security.web.context.SecurityContextHolderFilter@4e38b4ea, org.springframework.security.web.header.HeaderWriterFilter@4a81582c, org.springframework.web.filter.CorsFilter@6529b078, org.springframework.security.web.authentication.logout.LogoutFilter@3f41a1f3, org.example.qposbackend.Security.Jwt.JwtAuthFilter@760f4310, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@20e1ce62, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@36642182, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@23591a2c, org.springframework.security.web.access.ExceptionTranslationFilter@1ebb6e20, org.springframework.security.web.access.intercept.AuthorizationFilter@49a6b730]
+2025-02-11T12:36:48.778+03:00  INFO 89854 --- [QposBackend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-02-11T12:36:48.901+03:00  INFO 89854 --- [QposBackend] [           main] o.e.qposbackend.QposBackendApplication   : Started QposBackendApplication in 20.716 seconds (process running for 22.471)
+2025-02-11T12:37:19.281+03:00  INFO 89854 --- [QposBackend] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-02-11T12:37:19.282+03:00  INFO 89854 --- [QposBackend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-02-11T12:37:19.285+03:00  INFO 89854 --- [QposBackend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+Offers is empty

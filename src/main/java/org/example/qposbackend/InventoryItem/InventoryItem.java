@@ -1,13 +1,14 @@
 package org.example.qposbackend.InventoryItem;
 
 import jakarta.persistence.*;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.qposbackend.Authorization.AuthorityFieldFilter.HideUnlessAuthorized;
+import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.Item.Item;
-import org.springframework.stereotype.Component;
+import org.example.qposbackend.Suppliers.Supplier;
 
 @Entity
 @Data
@@ -20,9 +21,16 @@ public class InventoryItem {
     private Long id;
     @OneToOne
     private Item item;
-    private int quantity;
+    private Integer quantity;
+    private Integer reorderLevel = 0;
+    @Enumerated(EnumType.STRING)
+    private InventoryStatus inventoryStatus;
+    @ManyToMany(fetch = FetchType.LAZY)
+    private List<Supplier> supplier;
     private Double buyingPrice;
     private Double sellingPrice;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    private PriceDetails priceDetails;
     @Builder.Default
     private Double discountAllowed = 0.0;
     @Column(nullable = false)
