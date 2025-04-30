@@ -85,7 +85,8 @@ public class StockService {
       Price latestPrice = latestPriceOptional.get();
       if (latestPrice.getBuyingPrice() == stockItemDTO.buyingPrice() / stockItemDTO.packaging()) {
         latestPrice.setQuantityUnderThisPrice(
-            stockItemDTO.quantity() + latestPrice.getQuantityUnderThisPrice());
+            stockItemDTO.quantity() * stockItemDTO.packaging()
+                + latestPrice.getQuantityUnderThisPrice());
       } else {
         Price price = new Price();
         price.setBuyingPrice(stockItemDTO.buyingPrice() / stockItemDTO.packaging());
@@ -153,7 +154,7 @@ public class StockService {
     }
     price.setDiscountAllowed(0);
     price.setStatus(PriceStatus.ACTIVE);
-    price.setQuantityUnderThisPrice(stockItemDTO.quantity());
+    price.setQuantityUnderThisPrice(stockItemDTO.quantity() * stockItemDTO.packaging());
     return price;
   }
 
@@ -166,7 +167,6 @@ public class StockService {
     if (!this.stockRepository.findAll().isEmpty()) {
       return;
     }
-
 
     for (String line : lines) {
       String[] split = line.split(",");

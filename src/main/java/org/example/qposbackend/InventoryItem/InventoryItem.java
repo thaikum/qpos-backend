@@ -2,10 +2,9 @@ package org.example.qposbackend.InventoryItem;
 
 import jakarta.persistence.*;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
+import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Suppliers.Supplier;
@@ -21,6 +20,8 @@ public class InventoryItem {
     private Long id;
     @OneToOne
     private Item item;
+    @Transient
+    @Getter(AccessLevel.NONE)
     private Integer quantity;
     private Integer reorderLevel = 0;
     @Enumerated(EnumType.STRING)
@@ -36,4 +37,10 @@ public class InventoryItem {
     @Column(nullable = false)
     @Builder.Default
     private boolean isDeleted = false;
+
+    public Integer getQuantity(){
+    return this.priceDetails.getPrices().stream()
+        .mapToInt(Price::getQuantityUnderThisPrice)
+        .sum();
+    }
 }
