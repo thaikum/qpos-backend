@@ -144,9 +144,7 @@ public class OrderService {
                 changedPrices.add(price);
 
                 while (quantity > 0) {
-                  System.out.println("Attempted here " + quantity);
                   first = sortedPrices.pop();
-                  System.out.println("Quantity is: " + first.getQuantityUnderThisPrice());
                   OrderItem newOrderItem =
                       OrderItem.builder()
                           .buyingPrice(first.getBuyingPrice())

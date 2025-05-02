@@ -36,4 +36,39 @@ public class PriceDetails {
         prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
     return price.orElse(this.prices.getLast()).getSellingPrice();
   }
+
+  public Double getTotalBuyingPrice(int quantity) {
+    if (quantity >= 0) {
+      Price price = prices.getLast();
+      return price.getBuyingPrice() * quantity;
+    }
+
+    quantity = Math.abs(quantity);
+    double totalBuyingPrice = 0D;
+    while (quantity > 0) {
+      for (Price p : prices) {
+        var existing = p.getQuantityUnderThisPrice();
+        totalBuyingPrice += Math.min(existing, quantity) * p.getBuyingPrice();
+        quantity = existing >= quantity ? 0 : quantity - existing;
+      }
+    }
+    return totalBuyingPrice;
+  }
+
+  public void adjustInventoryQuantity(int quantityChange) {
+    if (quantityChange >= 0) {
+      Price price = prices.getLast();
+      price.setQuantityUnderThisPrice(price.getQuantityUnderThisPrice() + quantityChange);
+      return;
+    }
+
+    quantityChange = Math.abs(quantityChange);
+    while (quantityChange > 0) {
+      for (Price p : prices) {
+        var existing = p.getQuantityUnderThisPrice();
+        p.setQuantityUnderThisPrice(Math.max(0, existing - quantityChange));
+        quantityChange = existing >= quantityChange ? 0 : quantityChange - existing;
+      }
+    }
+  }
 }
