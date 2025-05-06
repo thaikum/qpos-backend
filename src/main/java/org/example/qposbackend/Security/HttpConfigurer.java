@@ -58,8 +58,8 @@ public class HttpConfigurer {
                     // OPTIONS
                     .requestMatchers(HttpMethod.OPTIONS)
                     .permitAll()
-                    // ================================ SALES
-                    // ===============================================
+                    //  ===================== SALES
+                    //  ====================================
                     .requestMatchers(HttpMethod.POST, "order")
                     .hasAuthority(PrivilegesEnum.MAKE_SALE.name())
                     .requestMatchers(HttpMethod.POST, "order/get-by-range")
@@ -69,15 +69,14 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "order/return-item")
                     .hasAnyAuthority(PrivilegesEnum.HANDLE_RETURNED_GOODS.name())
 
-                    // ================================ EOD
-                    // =================================================
+                    // ===================== EOD ============================
                     .requestMatchers(HttpMethod.POST, "eod")
                     .hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
                     .requestMatchers(HttpMethod.POST, "eod/fetch-by-range")
                     .hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
 
-                    // ================================= INVENTORY
-                    // ===========================================
+                    //  ====================== INVENTORY
+                    //  ================================
                     .requestMatchers(
                         HttpMethod.GET,
                         "inventory",
@@ -93,22 +92,19 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.PUT, "inventory/delete")
                     .hasAuthority(PrivilegesEnum.DELETE_INVENTORY_ITEM.name())
 
-                    // ================================= ROLES
-                    // ===============================================
+                    //  =========================== ROLES ==============================
                     .requestMatchers(HttpMethod.GET, "roles", "privileges")
                     .hasAuthority(PrivilegesEnum.VIEW_ROLES.name())
                     .requestMatchers(HttpMethod.POST, "roles")
                     .hasAuthority(PrivilegesEnum.ADD_ROLE.name())
 
-                    // ================================ STOCK
-                    // ===============================================
+                    //  =========================== STOCK ==============================
                     .requestMatchers(HttpMethod.GET, "stock")
                     .hasAuthority(PrivilegesEnum.VIEW_STOCK.name())
                     .requestMatchers(HttpMethod.POST, "stock")
                     .hasAuthority(PrivilegesEnum.ADD_STOCK.name())
 
-                    // ================================== USER
-                    // ==============================================
+                    //  =========================== USER ===============================
                     .requestMatchers(HttpMethod.POST, "users")
                     .hasAuthority(PrivilegesEnum.ADD_USER.name())
                     .requestMatchers(HttpMethod.GET, "users")
@@ -116,13 +112,11 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "users/change-password")
                     .authenticated()
 
-                    // =============================== RESOURCES
-                    // =============================================
+                    // ============================= RESOURCES =========================
                     .requestMatchers(HttpMethod.GET, "item/**")
                     .permitAll()
 
-                    // =============================== ACCOUNTING
-                    // ============================================
+                    // ============================= ACCOUNTING ========================
                     .requestMatchers(HttpMethod.POST, "accounts")
                     .hasAuthority(PrivilegesEnum.CREATE_ACCOUNT.name())
                     .requestMatchers(HttpMethod.GET, "accounts")
@@ -130,8 +124,7 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.PUT, "accounts")
                     .hasAuthority(PrivilegesEnum.UPDATE_ACCOUNT.name())
 
-                    // =============================== TRANSACTIONS
-                    // ==========================================
+                    // ============================= TRANSACTIONS ======================
                     .requestMatchers(HttpMethod.POST, "transactions")
                     .hasAuthority(PrivilegesEnum.POST_TRANSACTION.name())
                     .requestMatchers(HttpMethod.GET, "transactions")
@@ -141,23 +134,20 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "transactions/by-range/{status}")
                     .hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
 
-                    // =============================== USER ACTIVITY
-                    // ==========================================
+                    // ============================= USER ACTIVITY =====================
                     .requestMatchers(
                         "user-activity/{user-id}",
                         "user-activity/check-in",
                         "user-activity/user-is-checked-in")
                     .authenticated()
 
-                    // ================================== ADMIN PARAMETERS
-                    // ====================================
+                    //  ======================= ADMIN PARAMETERS =======================
                     .requestMatchers(HttpMethod.GET, "admin-parameters")
                     .hasAnyAuthority(PrivilegesEnum.VIEW_ADMIN_PARAMETERS.name())
                     .requestMatchers(HttpMethod.PUT, "admin-parameters")
                     .hasAnyAuthority(PrivilegesEnum.UPDATE_ADMIN_PARAMETERS.name())
 
-                    // ================================== REPORTS
-                    // ================================================
+                    //  ======================= REPORTS ===============================
                     .requestMatchers("reports/profit_and_loss")
                     .hasAnyAuthority(PrivilegesEnum.VIEW_PROFIT_AND_LOSS_REPORT.name())
                     .requestMatchers("reports/account_statement")
@@ -165,8 +155,7 @@ public class HttpConfigurer {
                     .requestMatchers("reports/restocking_report")
                     .hasAnyAuthority(PrivilegesEnum.VIEW_RESTOCKING_ESTIMATES.name())
 
-                    // =================================== OFFERS
-                    // =================================================
+                    //  ======================== OFFERS =============================
                     .requestMatchers(HttpMethod.POST, "/offers")
                     .hasAnyAuthority(PrivilegesEnum.CREATE_OFFER.name())
                     .requestMatchers(HttpMethod.GET, "offers")
@@ -177,13 +166,42 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "offers/get-offers_on_order")
                     .hasAnyAuthority(PrivilegesEnum.MAKE_SALE.name())
 
-                    // =================================== CATEGORIES
-                    // ==============================================
+                    //  ======================== CATEGORIES =========================
                     .requestMatchers(
                         HttpMethod.GET, "categories", "main-categories", "sub-categories")
                     .hasAnyAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
-                    // ================================= OTHERS
-                    // ===============================================
+                    // ======================= STOCK TAKING =======================
+                    .requestMatchers(HttpMethod.POST, "stock-take/create")
+                    .hasAuthority(PrivilegesEnum.CREATE_STOCK_TAKE.name())
+                    .requestMatchers(HttpMethod.POST, "stock-take/schedule/for-user")
+                    .hasAuthority(PrivilegesEnum.SCHEDULE_STOCK_TAKE_FOR_USER.name())
+                    .requestMatchers(HttpMethod.PUT, "stock-take")
+                    .hasAuthority(PrivilegesEnum.PERFORM_STOCK_TAKE.name())
+                    .requestMatchers(HttpMethod.GET, "stock-take/discrepancies/{id}")
+                    .hasAuthority(PrivilegesEnum.VIEW_STOCK_TAKE_DISCREPANCIES.name())
+                    .requestMatchers(HttpMethod.POST, "stock-take/reconcile")
+                    .hasAuthority(PrivilegesEnum.RECONCILE_STOCK_TAKE.name())
+                    .requestMatchers(HttpMethod.GET, "stock-take/get-stock-take-type")
+                    .hasAnyAuthority(
+                        PrivilegesEnum.SCHEDULE_STOCK_TAKE_FOR_USER.name(),
+                        PrivilegesEnum.CREATE_STOCK_TAKE.name(),
+                        PrivilegesEnum.VIEW_STOCK_TAKE_DISCREPANCIES.name(),
+                        PrivilegesEnum.PERFORM_STOCK_TAKE.name())
+
+                    // ===================== STOCK TAKE CONFIG =====================
+                    .requestMatchers(
+                        HttpMethod.POST, "stock-take/recon-config/create-stock-take-type-config")
+                    .hasAuthority(PrivilegesEnum.CREATE_STOCK_TAKE_RECON_TYPE_CONFIG.name())
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "stock-take/recon-config/get-stock-take-type-config",
+                        "stock-take/recon-config/get-stock-take-recon-types",
+                        "stock-take/recon-config/get-stock-overage-cause")
+                    .hasAnyAuthority(
+                        PrivilegesEnum.VIEW_STOCK_TAKE_RECON_TYPE_CONFIG.name(),
+                        PrivilegesEnum.CREATE_STOCK_TAKE_RECON_TYPE_CONFIG.name())
+
+                    //  ====================== OTHERS ===============================
                     .requestMatchers("/users/login")
                     .permitAll()
                     .anyRequest()

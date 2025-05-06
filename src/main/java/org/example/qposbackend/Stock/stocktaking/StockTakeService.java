@@ -22,6 +22,7 @@ import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTy
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfigRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,10 @@ public class StockTakeService {
   private final AccountRepository accountRepository;
   private final OrderService orderService;
   private final TranHeaderService tranHeaderService;
+
+  public void performStockTake(StockTake stockTake) {
+    stockTakeRepository.save(stockTake);
+  }
 
   public StockTakeDTO getDiscrepancies(Long stockTakeId) {
     StockTake stockTake =
@@ -67,11 +72,11 @@ public class StockTakeService {
         springSecurityAuditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not logged in"));
-    return createStockTake(stockTakeType, ids, user, date);
+    return createStockTake(stockTakeType, ids, date, user);
   }
 
   public StockTake createStockTake(
-      StockTakeType stockTakeType, Set<Long> ids, User user, Date date) {
+      StockTakeType stockTakeType, Set<Long> ids, Date date, User user) {
 
     StockTake stockTake =
         StockTake.builder()
@@ -116,7 +121,7 @@ public class StockTakeService {
   }
 
   @Transactional
-  public void reconcileStockTake(StockTakeReconRequest stockTakeReconRequest) {
+  public StockTakeDTO reconcileStockTake(StockTakeReconRequest stockTakeReconRequest) {
     List<InventoryItem> inventoryItems = new ArrayList<>();
     StockTake stockTake =
         stockTakeRepository
@@ -145,6 +150,7 @@ public class StockTakeService {
     stockTake.setStockTakeRecons(stockTakeRecons);
     inventoryItemRepository.saveAll(inventoryItems);
     stockTakeRepository.save(stockTake);
+    return getDiscrepancies(stockTake.getId());
   }
 
   private StockTakeReconData createReconDataRecord(GroupItemsStockTakeRecon groupItemsStockRecon) {

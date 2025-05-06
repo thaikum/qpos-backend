@@ -33,7 +33,6 @@ public class TranHeaderService {
     verifyTransaction(tranHeader);
   }
 
-  //    @Transactional
   public void verifyTransaction(TranHeader tranHeader) {
     User user =
         auditorAware
@@ -75,43 +74,6 @@ public class TranHeaderService {
     ids.add(tranHeader.getTranId());
   }
 
-  //    @Transactional
-  //    public void verifyTransactions(List<TranHeader> tranHeaders) {
-  //        User user = auditorAware.getCurrentAuditor().orElseThrow();
-  //        Map<String, Double> accountMap = new HashMap<>();
-  //
-  //        for (TranHeader tranHeader : tranHeaders) {
-  //            Double net = 0.0;
-  //            for (PartTran part : tranHeader.getPartTrans()) {
-  //                Account account = part.getAccount();
-  //                accountMap.putIfAbsent(account.getAccountNumber(), 0.0);
-  //                Double change = accountMap.get(account.getAccountNumber());
-  //
-  //                if (part.getTranType().equals('C')) {
-  //                    change -= part.getAmount();
-  //                    net -= part.getAmount();
-  //                } else {
-  //                    change += part.getAmount();
-  //                    net += part.getAmount();
-  //                }
-  //                accountMap.put(account.getAccountNumber(), change);
-  //            }
-  //
-  //            if (net != 0.0) {
-  //                throw new RuntimeException("Transaction must balance");
-  //            }
-  //
-  //            tranHeader.setVerifiedBy(user);
-  //            tranHeader.setVerifiedDate(tranHeader.getPostedDate());
-  //            tranHeader.setStatus(TransactionStatus.VERIFIED.name());
-  //        }
-  //        log.info("Now saving");
-  //        tranHeaderRepository.saveAll(tranHeaders);
-  //        for (Map.Entry<String, Double> entry : accountMap.entrySet()) {
-  //            accountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
-  //        }
-  //        log.info("Done saving");
-  //    }
 
   @Transactional
   public void verifyTransactions(List<TranHeader> tranHeaders) {
