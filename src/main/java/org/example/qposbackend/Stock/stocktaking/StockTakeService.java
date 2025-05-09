@@ -22,7 +22,6 @@ import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTy
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfigRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +33,16 @@ public class StockTakeService {
   private final AccountRepository accountRepository;
   private final OrderService orderService;
   private final TranHeaderService tranHeaderService;
+
+  public List<StockTake> getStockTakes() {
+    return stockTakeRepository.findAll();
+  }
+
+  public StockTake getStockTake(Long id) {
+    return stockTakeRepository
+        .findById(id)
+        .orElseThrow(() -> new NoSuchElementException("Stock Take Not Found"));
+  }
 
   public void performStockTake(StockTake stockTake) {
     stockTakeRepository.save(stockTake);
@@ -114,7 +123,7 @@ public class StockTakeService {
             item ->
                 StockTakeItem.builder()
                     .expected(item.getQuantity())
-                    .quantity(0)
+                    .quantity(null)
                     .inventoryItem(item)
                     .build())
         .toList();

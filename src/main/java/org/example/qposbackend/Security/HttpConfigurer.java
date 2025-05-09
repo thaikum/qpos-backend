@@ -175,13 +175,15 @@ public class HttpConfigurer {
                     .hasAuthority(PrivilegesEnum.CREATE_STOCK_TAKE.name())
                     .requestMatchers(HttpMethod.POST, "stock-take/schedule/for-user")
                     .hasAuthority(PrivilegesEnum.SCHEDULE_STOCK_TAKE_FOR_USER.name())
-                    .requestMatchers(HttpMethod.PUT, "stock-take")
+                    .requestMatchers(HttpMethod.PUT, "stock-take", "stock-take/stock-take-item")
                     .hasAuthority(PrivilegesEnum.PERFORM_STOCK_TAKE.name())
                     .requestMatchers(HttpMethod.GET, "stock-take/discrepancies/{id}")
                     .hasAuthority(PrivilegesEnum.VIEW_STOCK_TAKE_DISCREPANCIES.name())
                     .requestMatchers(HttpMethod.POST, "stock-take/reconcile")
                     .hasAuthority(PrivilegesEnum.RECONCILE_STOCK_TAKE.name())
-                    .requestMatchers(HttpMethod.GET, "stock-take/get-stock-take-type")
+                    .requestMatchers(HttpMethod.GET, "stock-take/{id}")
+                    .hasAuthority(PrivilegesEnum.VIEW_SINGLE_STOCK_TAKE.name())
+                    .requestMatchers(HttpMethod.GET, "stock-take", "stock-take/get-stock-take-type")
                     .hasAnyAuthority(
                         PrivilegesEnum.SCHEDULE_STOCK_TAKE_FOR_USER.name(),
                         PrivilegesEnum.CREATE_STOCK_TAKE.name(),

@@ -3,6 +3,7 @@ package org.example.qposbackend.Stock.stocktaking.stocktakeRecon.singleItemRecon
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 
@@ -10,6 +11,7 @@ import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Data
 public class SingleItemRecon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -3,6 +3,7 @@ package org.example.qposbackend.Stock.stocktaking.stocktakeItem;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.*;
 import lombok.*;
+import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 
@@ -20,7 +21,7 @@ public class StockTakeItem {
   @JoinColumn(name = "inventory_item_id")
   private InventoryItem inventoryItem;
 
-  private Integer quantity;
+  private Integer quantity = null;
 
   @Setter(AccessLevel.NONE)
   private Integer expected; // this value should be set on object creation
@@ -31,12 +32,13 @@ public class StockTakeItem {
 
   public Double getAmountDifference() {
     return this.getExpected()
-        - this.getQuantity() * this.inventoryItem.getPriceDetails().getSellingPrice();
+        - ObjectUtils.firstNonNull(this.quantity, 0)
+            * this.inventoryItem.getPriceDetails().getSellingPrice();
   }
 
   @PrePersist
   private void setExpectedOnCreation() {
-    this.quantity =
+    this.expected =
         inventoryItem.getPriceDetails().getPrices().stream()
             .mapToInt(Price::getQuantityUnderThisPrice)
             .sum();

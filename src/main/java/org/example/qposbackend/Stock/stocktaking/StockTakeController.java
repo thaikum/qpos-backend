@@ -1,10 +1,8 @@
 package org.example.qposbackend.Stock.stocktaking;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.DTOs.*;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
-import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfig;
 import org.example.qposbackend.Utils.EnumUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,6 +66,16 @@ public class StockTakeController {
   @GetMapping("get-stock-take-type")
   public ResponseEntity<DataResponse> getStockTakeType() {
     return ResponseEntity.ok(new DataResponse(EnumUtils.toEnumList(StockTakeType.class), null));
+  }
+
+  @GetMapping
+  public ResponseEntity<DataResponse> getStockTake() {
+    return ResponseEntity.ok(new DataResponse(stockTakeService.getStockTakes(), null));
+  }
+
+  @GetMapping("{id}")
+  public ResponseEntity<DataResponse> getStockTake(@PathVariable long id) {
+    return ResponseEntity.ok(new DataResponse(stockTakeService.getStockTake(id), null));
   }
 
   @PostMapping("reconcile")
