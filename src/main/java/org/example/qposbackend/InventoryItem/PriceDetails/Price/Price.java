@@ -1,10 +1,8 @@
 package org.example.qposbackend.InventoryItem.PriceDetails.Price;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import org.example.qposbackend.Integrity.IntegrityAttributes;
-
 import java.util.Date;
+import lombok.Data;
 
 @Entity
 @Data
