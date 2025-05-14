@@ -67,9 +67,16 @@ public class StockTakeService {
                     stockTakeItem ->
                         StockTakeItemDTO.builder()
                             .quantityDifference(
-                                stockTakeItem.getExpected() - stockTakeItem.getQuantity())
+                                stockTakeItem.getQuantity() - stockTakeItem.getExpected())
                             .id(stockTakeItem.getId())
-                            .inventoryItem(stockTakeItem.getInventoryItem())
+                            .itemName(stockTakeItem.getInventoryItem().getItem().getName())
+                            .itemPrice(
+                                stockTakeItem
+                                    .getInventoryItem()
+                                    .getPriceDetails()
+                                    .getSellingPrice())
+                            .actualQuantity(stockTakeItem.getQuantity())
+                            .expectedQuantity(stockTakeItem.getExpected())
                             .amountDifference(stockTakeItem.getAmountDifference())
                             .build())
                 .toList())

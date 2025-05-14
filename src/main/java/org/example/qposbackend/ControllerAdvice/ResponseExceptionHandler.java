@@ -5,11 +5,13 @@ import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.hibernate.TransientPropertyValueException;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.sql.SQLSyntaxErrorException;
 import java.util.NoSuchElementException;
@@ -37,5 +39,10 @@ public class ResponseExceptionHandler {
   @ExceptionHandler(NotAcceptableException.class)
   public ResponseEntity<MessageResponse> handleNotAcceptableException(NotAcceptableException ex) {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
+  }
+
+  @ExceptionHandler(TypeMismatchException.class)
+  public ResponseEntity<MessageResponse> handleNotAcceptableException(TypeMismatchException ex) {
+    return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
   }
 }

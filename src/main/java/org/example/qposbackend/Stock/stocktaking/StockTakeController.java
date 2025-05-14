@@ -59,6 +59,7 @@ public class StockTakeController {
       StockTakeDTO stockTakeDTO = stockTakeService.getDiscrepancies(id);
       return ResponseEntity.ok(new DataResponse(stockTakeDTO, null));
     } catch (Exception e) {
+      e.printStackTrace();
       throw new GenericRuntimeException(e.getMessage());
     }
   }
