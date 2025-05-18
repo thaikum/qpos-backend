@@ -14,4 +14,5 @@ public class StockTakeItemDTO {
   private Integer actualQuantity;
   private Integer quantityDifference;
   private Double amountDifference;
+  private Integer alreadyReconciled;
 }

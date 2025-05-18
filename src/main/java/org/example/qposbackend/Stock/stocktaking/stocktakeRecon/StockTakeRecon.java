@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.singleItemRecon.SingleItemRecon;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconType;
 
@@ -17,21 +18,27 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StockTakeRecon {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private Double reconciliationAmount;
+  private Double reconciliationAmount;
 
-    private Double penaltyAmount;
+  private Double penaltyAmount;
 
-    @Temporal(TemporalType.DATE)
-    private Date reconDate;
+  @Temporal(TemporalType.DATE)
+  private Date reconDate;
 
-    @Enumerated(EnumType.STRING)
-    private StockTakeReconType stockTakeReconType;
+  private String description;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn
-    private List<SingleItemRecon> singleItemRecons;
+  @ManyToOne private Account penaltyAccount;
+
+  @ManyToOne private Account deductionAccount;
+
+  @Enumerated(EnumType.STRING)
+  private StockTakeReconType stockTakeReconType;
+
+  @OneToMany(cascade = CascadeType.ALL)
+  @JoinColumn
+  private List<SingleItemRecon> singleItemRecons;
 }

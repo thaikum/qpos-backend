@@ -59,7 +59,6 @@ public class StockTakeController {
       StockTakeDTO stockTakeDTO = stockTakeService.getDiscrepancies(id);
       return ResponseEntity.ok(new DataResponse(stockTakeDTO, null));
     } catch (Exception e) {
-      e.printStackTrace();
       throw new GenericRuntimeException(e.getMessage());
     }
   }
@@ -81,11 +80,12 @@ public class StockTakeController {
 
   @PostMapping("reconcile")
   public ResponseEntity<DataResponse> reconcileStockTake(
-      StockTakeReconRequest stockTakeReconRequest) {
+      @RequestBody StockTakeReconRequest stockTakeReconRequest) {
     try {
       StockTakeDTO stockTakeDTO = stockTakeService.reconcileStockTake(stockTakeReconRequest);
       return ResponseEntity.ok(new DataResponse(stockTakeDTO, null));
     } catch (Exception e) {
+      e.printStackTrace();
       throw new GenericRuntimeException(e.getMessage());
     }
   }
