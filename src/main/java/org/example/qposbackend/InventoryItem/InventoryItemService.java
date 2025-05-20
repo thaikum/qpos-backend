@@ -1,6 +1,5 @@
 package org.example.qposbackend.InventoryItem;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,7 +8,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.lang.model.type.NullType;
 
-import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
@@ -23,7 +21,6 @@ import org.example.qposbackend.Item.UnitsOfMeasure;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -138,7 +135,7 @@ public class InventoryItemService {
     return null;
   }
 
-  public InventoryItem createInventory(String stringfiedInventoryDTO, Optional<MultipartFile> image)
+  public void createInventory(String stringfiedInventoryDTO, Optional<MultipartFile> image)
       throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     InventoryItem inventoryItem =
@@ -146,7 +143,7 @@ public class InventoryItemService {
 
     Item item = itemService.saveItem(inventoryItem.getItem(), image);
     inventoryItem.setItem(item);
-    return inventoryItemRepository.save(inventoryItem);
+    inventoryItemRepository.save(inventoryItem);
   }
 
   public void updateInventory(Long id, String formData, Optional<MultipartFile> image)

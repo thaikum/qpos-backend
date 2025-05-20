@@ -76,7 +76,7 @@ public class StockTakeService {
                                     .map(
                                         item ->
                                             SingleItemStockTakeRecon.builder()
-                                                .stockTakeItemId(item.getId())
+                                                .stockTakeItemId(item.getStockTakeItem().getId())
                                                 .quantity(item.getQuantity())
                                                 .build())
                                     .toList())
@@ -287,9 +287,12 @@ public class StockTakeService {
                 groupItemsStockRecon.getDescription());
         partTranDTOS.addAll(goodsTransactions.partTrans());
 
-        // update inventory
         InventoryItem inventoryItem = stockTakeItem.getInventoryItem();
-        inventoryItem.getPriceDetails().adjustInventoryQuantity(singleItem.getQuantity());
+        var quantityChange =
+            stockTakeItem.getQuantity() > stockTakeItem.getExpected()
+                ? Math.abs(singleItem.getQuantity())
+                : -Math.abs(singleItem.getQuantity());
+        inventoryItem.getPriceDetails().adjustInventoryQuantity(quantityChange);
         inventoryItems.add(inventoryItem);
       }
 
@@ -309,7 +312,8 @@ public class StockTakeService {
     if (saleOrder != null) {
       orderService.processOrder(saleOrder);
     }
-    tranHeaderService.createTransactions(tranHeaderDTO);
+
+    tranHeaderService.createAndVerifyTransaction(tranHeaderDTO);
 
     return data;
   }
@@ -321,6 +325,7 @@ public class StockTakeService {
       Account reconAccount,
       String description) {
     double total = stockTakeItem.getInventoryItem().getSellingPrice() * singleItem.getQuantity();
+    log.info("Total : {}", total);
     OrderItem orderItem = new OrderItem();
     orderItem.setQuantity(singleItem.getQuantity());
     orderItem.setInventoryItem(stockTakeItem.getInventoryItem());

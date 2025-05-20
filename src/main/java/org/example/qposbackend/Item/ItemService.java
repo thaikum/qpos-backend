@@ -1,10 +1,15 @@
 package org.example.qposbackend.Item;
 
 import jakarta.transaction.Transactional;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
-import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
-import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
-import org.example.qposbackend.InventoryItem.PriceDetails.PricingMode;
+import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Item.ItemClassification.Category.Category;
 import org.example.qposbackend.Item.ItemClassification.Category.CategoryRepository;
 import org.example.qposbackend.Item.ItemClassification.MainCategory.MainCategory;
@@ -15,20 +20,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.lang.model.type.NullType;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -43,7 +38,7 @@ public class ItemService {
     String fileExtension =
         Objects.requireNonNull(file.getOriginalFilename())
             .substring(file.getOriginalFilename().lastIndexOf(".") + 1);
-    String uniqueFileName = "item" + "_" + id + "_" + fileExtension;
+    String uniqueFileName = "item" + "_" + id + "_." + fileExtension;
 
     Path uploadPath = Path.of(this.uploadPath);
     Path filePath = uploadPath.resolve(uniqueFileName);
@@ -74,6 +69,7 @@ public class ItemService {
       }
     }
 
+    item = itemRepository.save(item);
     return item;
   }
 
@@ -89,12 +85,15 @@ public class ItemService {
     oldItem.setBarCode(Optional.ofNullable(newBarcode).orElse(oldItem.getBarCode()));
 
     if (imageOpt.isPresent()) {
+      log.info("Image is available");
       MultipartFile file = imageOpt.get();
       if (!file.isEmpty()) {
+        log.info("Image is not empty");
         String fileName = saveImage(file, item.getId());
-        item.setImageUrl(uploadPath + fileName);
+        oldItem.setImageUrl(uploadPath + fileName);
       }
     }
+
     SubCategory newSubCategory =
         subCategoryRepository.findById(Long.parseLong(item.getSubCategory())).orElse(null);
     oldItem.setSubCategoryId(

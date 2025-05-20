@@ -31,10 +31,30 @@ public class PriceDetails {
   @Getter(AccessLevel.NONE)
   private Double sellingPrice;
 
+  @Transient
+  @Getter(AccessLevel.NONE)
+  private Double buyingPrice;
+
+  @Transient
+  @Getter(AccessLevel.NONE)
+  private Double discountAllowed;
+
   public Double getSellingPrice() {
     Optional<Price> price =
         prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
     return price.orElse(this.prices.getLast()).getSellingPrice();
+  }
+
+  public Double getBuyingPrice() {
+    Optional<Price> price =
+        prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
+    return price.orElse(this.prices.getLast()).getBuyingPrice();
+  }
+
+  public Double getDiscountAllowed() {
+    Optional<Price> price =
+        prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
+    return price.orElse(this.prices.getLast()).getDiscountAllowed();
   }
 
   public Double getTotalBuyingPrice(int quantity) {

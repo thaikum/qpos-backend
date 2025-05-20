@@ -93,6 +93,7 @@ public class OrderService {
 
     for (OrderItem orderItem : saleOrder.getOrderItems()) {
       InventoryItem inventoryItem = orderItem.getInventoryItem();
+      orderItem.setPrice(inventoryItem.getPriceDetails().getSellingPrice());
 
       List<Price> validPrices =
           inventoryItem.getPriceDetails().getPrices().stream()

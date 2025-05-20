@@ -1,12 +1,12 @@
 package org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig;
 
-import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.Hibernate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StockTakeReconTypeConfigService {
@@ -16,7 +16,24 @@ public class StockTakeReconTypeConfigService {
     stockTakeReconTypeConfigRepository.save(stockTakeReconTypeConfig);
   }
 
+  public void updateStockTakeConfig(Long id, StockTakeReconTypeConfig newConfig) {
+    StockTakeReconTypeConfig config =
+        stockTakeReconTypeConfigRepository
+            .findById(id)
+            .orElseThrow(() -> new NoSuchElementException("stock-take-type-config not found"));
+
+    config.setStockOverageCause(newConfig.getStockOverageCause());
+    config.setCreateSale(newConfig.getCreateSale());
+    config.setApplyPenalty(newConfig.getApplyPenalty());
+    config.setHasFinancialImpact(newConfig.getHasFinancialImpact());
+    config.setPenaltyAccount(newConfig.getPenaltyAccount());
+    config.setExpenseAccount(newConfig.getExpenseAccount());
+    config.setBalancingAccount(newConfig.getBalancingAccount());
+
+    stockTakeReconTypeConfigRepository.save(config);
+  }
+
   public List<StockTakeReconTypeConfig> getStockTakeReconTypeConfigs() {
-      return stockTakeReconTypeConfigRepository.findAllWithAccounts();
+    return stockTakeReconTypeConfigRepository.findAllWithAccounts();
   }
 }
