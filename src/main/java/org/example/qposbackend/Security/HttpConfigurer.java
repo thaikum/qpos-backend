@@ -85,7 +85,12 @@ public class HttpConfigurer {
                         "price-details/pricing-mode",
                         "item/units-of-measure")
                     .hasAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
-                    .requestMatchers(HttpMethod.POST, "inventory")
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "inventory",
+                        "categories",
+                        "sub-categories",
+                        "main-categories")
                     .hasAuthority(PrivilegesEnum.ADD_INVENTORY_ITEM.name())
                     .requestMatchers(HttpMethod.PUT, "inventory/{id}")
                     .hasAuthority(PrivilegesEnum.UPDATE_INVENTORY.name())

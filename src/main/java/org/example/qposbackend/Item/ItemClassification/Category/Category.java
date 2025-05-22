@@ -1,5 +1,6 @@
 package org.example.qposbackend.Item.ItemClassification.Category;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,5 +27,6 @@ public class Category {
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "main_category_id", nullable = false)
+    @JsonIgnore
     private MainCategory mainCategory;
 }

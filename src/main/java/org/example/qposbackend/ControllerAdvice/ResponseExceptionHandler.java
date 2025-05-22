@@ -1,5 +1,6 @@
 package org.example.qposbackend.ControllerAdvice;
 
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
@@ -41,8 +42,8 @@ public class ResponseExceptionHandler {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
   }
 
-  @ExceptionHandler(TypeMismatchException.class)
-  public ResponseEntity<MessageResponse> handleNotAcceptableException(TypeMismatchException ex) {
+  @ExceptionHandler({TypeMismatchException.class, InvalidDefinitionException.class})
+  public ResponseEntity<MessageResponse> handleNotAcceptableException(Exception ex) {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
   }
 }
