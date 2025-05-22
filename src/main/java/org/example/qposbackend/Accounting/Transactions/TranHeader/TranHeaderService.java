@@ -74,7 +74,6 @@ public class TranHeaderService {
     ids.add(tranHeader.getTranId());
   }
 
-
   @Transactional
   public void verifyTransactions(List<TranHeader> tranHeaders) {
     User user =
@@ -97,7 +96,12 @@ public class TranHeaderService {
 
   public void declineTranHeaders(List<Long> ids) {}
 
-  public void createTransactions(TranHeaderDTO tranHeaderDTO) {
+  public void createAndVerifyTransaction(TranHeaderDTO tranHeaderDTO) {
+    TranHeader tranHeader = createTransactions(tranHeaderDTO);
+    verifyTransaction(tranHeader);
+  }
+
+  public TranHeader createTransactions(TranHeaderDTO tranHeaderDTO) {
     try {
       User user =
           springSecurityAuditorAware
@@ -133,7 +137,7 @@ public class TranHeaderService {
       tranHeader.setPartTrans(partTrans);
       tranHeader.setStatus(TransactionStatus.UNVERIFIED.name());
 
-      tranHeaderRepository.save(tranHeader);
+      return tranHeaderRepository.save(tranHeader);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

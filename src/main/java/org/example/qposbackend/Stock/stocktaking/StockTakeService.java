@@ -3,7 +3,10 @@ package org.example.qposbackend.Stock.stocktaking;
 import jakarta.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
@@ -23,6 +26,7 @@ import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTy
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StockTakeService {
@@ -53,27 +57,78 @@ public class StockTakeService {
         stockTakeRepository
             .findById(stockTakeId)
             .orElseThrow(() -> new NoSuchElementException("StockTake not found"));
+    Map<Long, Integer> reconciled = reconciledItemQuantity(stockTake);
 
     return StockTakeDTO.builder()
         .stockTakeId(stockTake.getId())
         .stockTakeDate(stockTake.getStockTakeDate())
         .stockTaker(stockTake.getAssignedUser())
+        .doneRecons(
+            stockTake.getStockTakeRecons().stream()
+                .map(
+                    recon ->
+                        GroupItemsStockTakeRecon.builder()
+                            .id(recon.getId())
+                            .penalty(recon.getPenaltyAmount())
+                            .stockTakeReconType(recon.getStockTakeReconType())
+                            .singleItemStockTakeRecons(
+                                recon.getSingleItemRecons().stream()
+                                    .map(
+                                        item ->
+                                            SingleItemStockTakeRecon.builder()
+                                                .stockTakeItemId(item.getStockTakeItem().getId())
+                                                .quantity(item.getQuantity())
+                                                .build())
+                                    .toList())
+                            .build())
+                .toList())
         .stockTakeItems(
             stockTake.getStockTakeItems().stream()
                 .filter(
                     stockTakeItem ->
                         !Objects.equals(stockTakeItem.getQuantity(), stockTakeItem.getExpected()))
                 .map(
-                    stockTakeItem ->
-                        StockTakeItemDTO.builder()
-                            .quantityDifference(
-                                stockTakeItem.getExpected() - stockTakeItem.getQuantity())
-                            .id(stockTakeItem.getId())
-                            .inventoryItem(stockTakeItem.getInventoryItem())
-                            .amountDifference(stockTakeItem.getAmountDifference())
-                            .build())
+                    stockTakeItem -> {
+                      int reconciledQuantity = reconciled.getOrDefault(stockTakeItem.getId(), 0);
+                      int diff = stockTakeItem.getQuantity() - stockTakeItem.getExpected();
+                      int quantityDifference =
+                          diff > 0 ? diff - reconciledQuantity : diff + reconciledQuantity;
+
+                      return StockTakeItemDTO.builder()
+                          .quantityDifference(quantityDifference)
+                          .id(stockTakeItem.getId())
+                          .itemName(stockTakeItem.getInventoryItem().getItem().getName())
+                          .itemPrice(
+                              stockTakeItem.getInventoryItem().getPriceDetails().getSellingPrice())
+                          .actualQuantity(stockTakeItem.getQuantity())
+                          .alreadyReconciled(reconciledQuantity)
+                          .expectedQuantity(stockTakeItem.getExpected())
+                          .amountDifference(
+                              stockTakeItem.getInventoryItem().getPriceDetails().getSellingPrice()
+                                  * quantityDifference)
+                          .build();
+                    })
                 .toList())
         .build();
+  }
+
+  private Map<Long, Integer> reconciledItemQuantity(StockTake stockTake) {
+    Map<Long, Integer> reconciledItemQuantity = new HashMap<>();
+
+    for (var recons : stockTake.getStockTakeRecons()) {
+      for (var recon : recons.getSingleItemRecons()) {
+        reconciledItemQuantity.compute(
+            recon.getStockTakeItem().getId(),
+            (key, value) -> {
+              if (value == null) {
+                return recon.getQuantity();
+              } else {
+                return value + recon.getQuantity();
+              }
+            });
+      }
+    }
+    return reconciledItemQuantity;
   }
 
   public StockTake createStockTake(StockTakeType stockTakeType, Set<Long> ids, Date date) {
@@ -132,6 +187,7 @@ public class StockTakeService {
   @Transactional
   public StockTakeDTO reconcileStockTake(StockTakeReconRequest stockTakeReconRequest) {
     List<InventoryItem> inventoryItems = new ArrayList<>();
+    log.info("Stock take request {}", stockTakeReconRequest);
     StockTake stockTake =
         stockTakeRepository
             .findById(stockTakeReconRequest.getStockTakeId())
@@ -139,6 +195,7 @@ public class StockTakeService {
     List<StockTakeRecon> stockTakeRecons = new ArrayList<>(stockTake.getStockTakeRecons());
 
     for (var groupItemsStockRecon : stockTakeReconRequest.getGroupItemsStockTakeRecons()) {
+      log.info("Group recon is: {}", groupItemsStockRecon);
       StockTakeReconTypeConfig stockTakeReconTypeConfig =
           stockTakeReconTypeConfigRepository
               .findByStockTakeReconType(groupItemsStockRecon.getStockTakeReconType())
@@ -156,7 +213,8 @@ public class StockTakeService {
       }
     }
 
-    stockTake.setStockTakeRecons(stockTakeRecons);
+    stockTake.getStockTakeRecons().clear();
+    stockTake.getStockTakeRecons().addAll(stockTakeRecons);
     inventoryItemRepository.saveAll(inventoryItems);
     stockTakeRepository.save(stockTake);
     return getDiscrepancies(stockTake.getId());
@@ -180,6 +238,7 @@ public class StockTakeService {
       GroupItemsStockTakeRecon groupItemsStockRecon,
       StockTakeReconTypeConfig config,
       StockTake stockTake) {
+    log.info("Processing financial reconciliation");
     var data = createReconDataRecord(groupItemsStockRecon);
     var stockTakeRecon = data.stockTakeRecon();
     var inventoryItems = data.inventoryItems();
@@ -187,7 +246,7 @@ public class StockTakeService {
     List<PartTranDTO> partTranDTOS = new ArrayList<>();
     TranHeaderDTO tranHeaderDTO = new TranHeaderDTO(new Date(), partTranDTOS);
 
-    if (ObjectUtils.nullSafeEquals(groupItemsStockRecon.getPenalty(), 0d)) {
+    if (!ObjectUtils.nullSafeEquals(groupItemsStockRecon.getPenalty(), 0d)) {
       var penaltyTranDTO = processPenalty(groupItemsStockRecon, config.getPenaltyAccount());
       partTranDTOS.addAll(penaltyTranDTO.partTrans());
     }
@@ -202,6 +261,10 @@ public class StockTakeService {
     }
 
     for (var singleItem : groupItemsStockRecon.getSingleItemStockTakeRecons()) {
+      if (singleItem.getQuantity() == 0) {
+        continue;
+      }
+
       StockTakeItem stockTakeItem =
           getStockTakeItemFromStockTakeById(singleItem.getStockTakeItemId(), stockTake)
               .orElseThrow(() -> new NoSuchElementException("StockTakeItem not found"));
@@ -224,9 +287,12 @@ public class StockTakeService {
                 groupItemsStockRecon.getDescription());
         partTranDTOS.addAll(goodsTransactions.partTrans());
 
-        // update inventory
         InventoryItem inventoryItem = stockTakeItem.getInventoryItem();
-        inventoryItem.getPriceDetails().adjustInventoryQuantity(singleItem.getQuantity());
+        var quantityChange =
+            stockTakeItem.getQuantity() > stockTakeItem.getExpected()
+                ? Math.abs(singleItem.getQuantity())
+                : -Math.abs(singleItem.getQuantity());
+        inventoryItem.getPriceDetails().adjustInventoryQuantity(quantityChange);
         inventoryItems.add(inventoryItem);
       }
 
@@ -246,7 +312,8 @@ public class StockTakeService {
     if (saleOrder != null) {
       orderService.processOrder(saleOrder);
     }
-    tranHeaderService.createTransactions(tranHeaderDTO);
+
+    tranHeaderService.createAndVerifyTransaction(tranHeaderDTO);
 
     return data;
   }
@@ -258,6 +325,7 @@ public class StockTakeService {
       Account reconAccount,
       String description) {
     double total = stockTakeItem.getInventoryItem().getSellingPrice() * singleItem.getQuantity();
+    log.info("Total : {}", total);
     OrderItem orderItem = new OrderItem();
     orderItem.setQuantity(singleItem.getQuantity());
     orderItem.setInventoryItem(stockTakeItem.getInventoryItem());
@@ -329,6 +397,7 @@ public class StockTakeService {
 
   private StockTakeReconData processNonFinancialImpactRecon(
       GroupItemsStockTakeRecon groupItemsStockRecon, StockTake stockTake) {
+    log.info("Processing non-financial reconciliation");
     var data = createReconDataRecord(groupItemsStockRecon);
     var stockTakeRecon = data.stockTakeRecon();
     var inventoryItems = data.inventoryItems();

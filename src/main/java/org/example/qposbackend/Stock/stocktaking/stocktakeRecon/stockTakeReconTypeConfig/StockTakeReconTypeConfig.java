@@ -36,4 +36,6 @@ public class StockTakeReconTypeConfig {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn
   private Account balancingAccount;
+
+  private Boolean isDeleted = false;
 }

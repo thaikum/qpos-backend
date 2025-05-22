@@ -85,7 +85,12 @@ public class HttpConfigurer {
                         "price-details/pricing-mode",
                         "item/units-of-measure")
                     .hasAuthority(PrivilegesEnum.VIEW_INVENTORY.name())
-                    .requestMatchers(HttpMethod.POST, "inventory")
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "inventory",
+                        "categories",
+                        "sub-categories",
+                        "main-categories")
                     .hasAuthority(PrivilegesEnum.ADD_INVENTORY_ITEM.name())
                     .requestMatchers(HttpMethod.PUT, "inventory/{id}")
                     .hasAuthority(PrivilegesEnum.UPDATE_INVENTORY.name())
@@ -202,6 +207,10 @@ public class HttpConfigurer {
                     .hasAnyAuthority(
                         PrivilegesEnum.VIEW_STOCK_TAKE_RECON_TYPE_CONFIG.name(),
                         PrivilegesEnum.CREATE_STOCK_TAKE_RECON_TYPE_CONFIG.name())
+                    .requestMatchers(
+                        HttpMethod.PUT,
+                        "stock-take/recon-config/update-stock-take-type-config/{id}")
+                    .hasAuthority(PrivilegesEnum.CREATE_STOCK_TAKE_RECON_TYPE_CONFIG.name())
 
                     //  ====================== OTHERS ===============================
                     .requestMatchers("/users/login")

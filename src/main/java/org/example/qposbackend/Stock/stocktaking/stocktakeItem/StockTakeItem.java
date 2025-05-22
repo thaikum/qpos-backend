@@ -1,12 +1,13 @@
 package org.example.qposbackend.Stock.stocktaking.stocktakeItem;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 
+@Slf4j
 @Entity
 @Builder
 @Data
@@ -31,9 +32,11 @@ public class StockTakeItem {
   private Double amountDifference;
 
   public Double getAmountDifference() {
-    return this.getExpected()
-        - ObjectUtils.firstNonNull(this.quantity, 0)
+    var amount =
+        (ObjectUtils.firstNonNull(this.quantity, 0) -  this.getExpected())
             * this.inventoryItem.getPriceDetails().getSellingPrice();
+    log.info("amountDifference: {}", amount);
+    return amount;
   }
 
   @PrePersist

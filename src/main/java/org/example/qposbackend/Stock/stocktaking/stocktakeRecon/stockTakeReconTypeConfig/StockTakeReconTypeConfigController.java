@@ -28,6 +28,19 @@ public class StockTakeReconTypeConfigController {
     }
   }
 
+  @PutMapping("update-stock-take-type-config/{id}")
+  public ResponseEntity<MessageResponse> updateStockTakeTypeConfig(
+      @RequestBody @Valid StockTakeReconTypeConfig stockTakeReconTypeConfig,
+      @PathVariable Long id) {
+    try {
+      stockTakeReconTypeConfigService.updateStockTakeConfig(id, stockTakeReconTypeConfig);
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(new MessageResponse("stock-take-type-config updated"));
+    } catch (Exception e) {
+      throw new GenericRuntimeException(e.getMessage());
+    }
+  }
+
   @GetMapping("get-stock-take-type-config")
   public ResponseEntity<DataResponse> getStockTakeTypeConfig() {
     try {
