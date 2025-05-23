@@ -1,9 +1,12 @@
 package org.example.qposbackend.InventoryItem;
 
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.*;
+import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.Item.Item;
@@ -46,6 +49,8 @@ public class InventoryItem {
   private boolean isDeleted = false;
 
   public Integer getQuantity() {
-    return this.priceDetails.getPrices().stream().mapToInt(Price::getQuantityUnderThisPrice).sum();
+    return ObjectUtils.firstNonNull(this.priceDetails.getPrices(), new ArrayList<Price>()).stream()
+        .mapToInt(Price::getQuantityUnderThisPrice)
+        .sum();
   }
 }

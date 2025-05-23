@@ -60,6 +60,7 @@ public class InventoryItemController {
       inventoryItemService.updateInventory(id, formData, image);
       return ResponseEntity.ok(new MessageResponse("Inventory item updated successfully"));
     } catch (Exception ex) {
+      ex.printStackTrace();
       return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
           .body(new MessageResponse(ex.getMessage()));
     }

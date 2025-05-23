@@ -10,6 +10,7 @@ import javax.lang.model.type.NullType;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
@@ -168,8 +169,31 @@ public class InventoryItemService {
         Optional.ofNullable(newVersion.getSupplier()).orElse(inventoryItem.getSupplier()));
     inventoryItem.setReorderLevel(
         Optional.ofNullable(newVersion.getReorderLevel()).orElse(inventoryItem.getReorderLevel()));
-    inventoryItem.setPriceDetails(
-        Optional.ofNullable(newVersion.getPriceDetails()).orElse(inventoryItem.getPriceDetails()));
+
+    if (!Objects.isNull(newVersion.getPriceDetails())) {
+      var oldPriceDetails = inventoryItem.getPriceDetails();
+      var newPriceDetails = newVersion.getPriceDetails();
+
+      oldPriceDetails.setPricingMode(
+          ObjectUtils.firstNonNull(
+              newPriceDetails.getPricingMode(), oldPriceDetails.getPricingMode()));
+      oldPriceDetails.setFixedProfit(
+          ObjectUtils.firstNonNull(
+              newPriceDetails.getFixedProfit(), oldPriceDetails.getFixedProfit()));
+      oldPriceDetails.setProfitPercentage(
+          ObjectUtils.firstNonNull(
+              newPriceDetails.getProfitPercentage(), oldPriceDetails.getProfitPercentage()));
+
+      if (!Objects.isNull(newPriceDetails.getPrices()) && !newPriceDetails.getPrices().isEmpty()) {
+        List<Price> prices =
+            new ArrayList<>(
+                inventoryItem.getPriceDetails().getPrices().stream()
+                    .peek(p -> p.setStatus(PriceStatus.STOPPED))
+                    .toList());
+        prices.addAll(newPriceDetails.getPrices());
+        oldPriceDetails.setPrices(prices);
+      }
+    }
     inventoryItemRepository.save(inventoryItem);
   }
 
