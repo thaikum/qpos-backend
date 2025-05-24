@@ -11,6 +11,7 @@ import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Suppliers.Supplier;
+import org.example.qposbackend.shop.Shop;
 
 @Entity
 @Data
@@ -36,17 +37,21 @@ public class InventoryItem {
   @ManyToMany(fetch = FetchType.LAZY)
   private List<Supplier> supplier;
 
-  private Double buyingPrice;
-  private Double sellingPrice;
+  @Deprecated private Double buyingPrice;
+  @Deprecated private Double sellingPrice;
 
   @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
   private PriceDetails priceDetails;
 
-  @Builder.Default private Double discountAllowed = 0.0;
+  @Deprecated @Builder.Default private Double discountAllowed = 0.0;
 
   @Column(nullable = false)
   @Builder.Default
   private boolean isDeleted = false;
+
+  @ManyToOne
+  @JoinColumn(name = "shop_id")
+  private Shop shop;
 
   public Integer getQuantity() {
     return ObjectUtils.firstNonNull(this.priceDetails.getPrices(), new ArrayList<Price>()).stream()
