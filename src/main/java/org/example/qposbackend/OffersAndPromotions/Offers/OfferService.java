@@ -15,8 +15,8 @@ import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategory;
 import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategoryRepository;
 import org.example.qposbackend.OffersAndPromotions.*;
 import org.example.qposbackend.OffersAndPromotions.BundledConditions.BundledCondition;
-import org.example.qposbackend.Order.OrderItem.OrderItem;
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.orderItem.OrderItem;
+import org.example.qposbackend.order.SaleOrder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;

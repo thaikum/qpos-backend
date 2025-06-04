@@ -1,4 +1,4 @@
-package org.example.qposbackend.Order.OrderItem;
+package org.example.qposbackend.order.orderItem;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.OffersAndPromotions.Offers.Offer;
-import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInward;
+import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInward;
 
 import java.util.List;
 

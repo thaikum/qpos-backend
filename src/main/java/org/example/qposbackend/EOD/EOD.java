@@ -1,5 +1,6 @@
 package org.example.qposbackend.EOD;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.shop.Shop;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,4 +48,8 @@ public class EOD {
     @OneToMany
     @JoinTable(name = "eod_parttrans")
     private List<PartTran> involvedTransactions;
+    @ManyToOne
+    @JoinColumn
+    @JsonIgnore
+    private Shop shop;
 }

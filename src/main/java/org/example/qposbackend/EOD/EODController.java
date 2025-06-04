@@ -23,6 +23,6 @@ public class EODController {
 
     @PostMapping("/fetch-by-range")
     public ResponseEntity<DataResponse> fetchByRange(@RequestBody DateRange dateRange) {
-        return ResponseEntity.ok(new DataResponse(eoDRepository.findAllByDateBetween(dateRange.start(), dateRange.end()), null));
+        return ResponseEntity.ok(new DataResponse(eoDService.fetchByRange(dateRange), null));
     }
 }

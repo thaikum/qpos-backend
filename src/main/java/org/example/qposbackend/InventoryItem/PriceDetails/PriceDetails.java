@@ -4,14 +4,15 @@ import jakarta.persistence.*;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 
 @Entity
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PriceDetails {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

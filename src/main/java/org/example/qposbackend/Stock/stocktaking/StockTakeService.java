@@ -3,20 +3,19 @@ package org.example.qposbackend.Stock.stocktaking;
 import jakarta.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
-import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.*;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
-import org.example.qposbackend.Order.OrderItem.OrderItem;
-import org.example.qposbackend.Order.OrderService;
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.orderItem.OrderItem;
+import org.example.qposbackend.order.OrderService;
+import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.StockTakeRecon;
@@ -132,20 +131,21 @@ public class StockTakeService {
   }
 
   public StockTake createStockTake(StockTakeType stockTakeType, Set<Long> ids, Date date) {
-    User user =
+    UserShop userShop =
         springSecurityAuditorAware
             .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not logged in"));
-    return createStockTake(stockTakeType, ids, date, user);
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    return createStockTake(stockTakeType, ids, date, userShop);
   }
 
   public StockTake createStockTake(
-      StockTakeType stockTakeType, Set<Long> ids, Date date, User user) {
+      StockTakeType stockTakeType, Set<Long> ids, Date date, UserShop userShop) {
 
     StockTake stockTake =
         StockTake.builder()
             .stockTakeType(stockTakeType)
-            .assignedUser(user)
+            .assignedUser(userShop.getUser())
+            .shop(userShop.getShop())
             .stockTakeDate(date)
             .stockTakeItems(createStockTakeList(stockTakeType, ids))
             .build();

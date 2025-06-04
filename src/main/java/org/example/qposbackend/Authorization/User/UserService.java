@@ -9,12 +9,13 @@ import org.example.qposbackend.Authorization.Roles.SystemRoleRepository;
 import org.example.qposbackend.Authorization.SystemUserDetails.SystemUserDetails;
 import org.example.qposbackend.Authorization.User.Password.Password;
 import org.example.qposbackend.Authorization.User.dto.LoginResponse;
-import org.example.qposbackend.Authorization.authentication.UsernamePasswordShopCodeAuthenticationToken;
+import org.example.qposbackend.Authorization.User.dto.UserCredentials;
 import org.example.qposbackend.DTOs.AuthRequest;
 import org.example.qposbackend.DTOs.PasswordChange;
 import org.example.qposbackend.Security.Jwt.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,12 +37,11 @@ public class UserService {
     try {
       Authentication authentication =
           authenticationManager.authenticate(
-              new UsernamePasswordShopCodeAuthenticationToken(
-                  authRequest.email().trim(),
-                  authRequest.password().trim(),
-                  authRequest.shopCode()));
+              new UsernamePasswordAuthenticationToken(
+                  new UserCredentials(authRequest.email().trim(), authRequest.shopCode()),
+                  authRequest.password().trim()));
 
-      log.info("Authentication is: {}",authentication);
+      log.info("Authentication is: {}", authentication);
 
       User user = userRepository.findUserByEmail(authRequest.email()).orElseThrow();
       String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());

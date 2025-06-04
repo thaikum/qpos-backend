@@ -1,5 +1,6 @@
 package org.example.qposbackend.Stock.stocktaking;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.apache.commons.lang3.ObjectUtils;
@@ -7,6 +8,7 @@ import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.StockTakeRecon;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
+import org.example.qposbackend.shop.Shop;
 import org.jfree.util.ObjectUtilities;
 
 import java.util.*;
@@ -45,6 +47,11 @@ public class StockTake extends IntegrityAttributes {
   @OneToMany(cascade = CascadeType.ALL)
   @JoinColumn
   private List<StockTakeRecon> stockTakeRecons;
+
+  @ManyToOne
+  @JoinColumn
+  @JsonIgnore
+  private Shop shop;
 
   public StockTakeStatus getStatus() {
     boolean someDone = false;

@@ -1,4 +1,4 @@
-package org.example.qposbackend.Order.OrderItem.ReturnInward;
+package org.example.qposbackend.order.orderItem.ReturnInward;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

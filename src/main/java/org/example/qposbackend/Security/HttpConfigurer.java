@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Authorization.Privileges.PrivilegesEnum;
 import org.example.qposbackend.Authorization.SystemUserDetails.UserDetailsServiceImpl;
 import org.example.qposbackend.Authorization.authentication.StoqItAuthenticationProvider;
-import org.example.qposbackend.Authorization.authentication.UsernamePasswordShopCodeAuthenticationFilter;
 import org.example.qposbackend.Security.Jwt.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,10 +37,6 @@ public class HttpConfigurer {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    UsernamePasswordShopCodeAuthenticationFilter authFilter =
-        new UsernamePasswordShopCodeAuthenticationFilter();
-    authFilter.setAuthenticationManager(http.getSharedObject(AuthenticationManager.class));
-
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())
         .authorizeHttpRequests(

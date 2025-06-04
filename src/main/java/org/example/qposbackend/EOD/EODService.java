@@ -5,11 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTranRepository;
 import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
+import org.example.qposbackend.DTOs.DataResponse;
+import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.EndOfDayDTO;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
-import org.example.qposbackend.Order.OrderService;
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.OrderService;
+import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -27,6 +31,18 @@ public class EODService {
   private final SpringSecurityAuditorAware auditorAware;
   private List<PartTran> eodTrasactions = new ArrayList<>();
 
+  public ResponseEntity<DataResponse> fetchByRange(DateRange dateRange) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    return ResponseEntity.ok(
+        new DataResponse(
+            eoDRepository.findAllByShopAndDateBetween(
+                userShop.getShop(), dateRange.start(), dateRange.end()),
+            null));
+  }
+
   /**
    * \ Fix with values Expected: 2873 Available: 3280 Cash: 2835 Mpesa: 445
    *
@@ -34,9 +50,18 @@ public class EODService {
    */
   public void performEndOfDay(EndOfDayDTO endOfDayDTO) {
     eodTrasactions = new ArrayList<>();
-    Optional<EOD> previousEodOpt = eoDRepository.findLastEOD();
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    Optional<EOD> previousEodOpt = eoDRepository.findLastEODAndShop(userShop.getShop());
 
-    CurAssets totalSales = getTodaySales(previousEodOpt.orElse(EOD.builder().date(LocalDate.now()).build()).getDate().plusDays(1));
+    CurAssets totalSales =
+        getTodaySales(
+            previousEodOpt
+                .orElse(EOD.builder().date(LocalDate.now()).build())
+                .getDate()
+                .plusDays(1));
     double totalCashSale = totalSales.cashTotal;
     double totalMobileSale = totalSales.mobileTotal;
     double totalReceivables =
@@ -46,7 +71,8 @@ public class EODService {
     User user =
         auditorAware
             .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not found"));
+            .orElseThrow(() -> new NoSuchElementException("User not found"))
+            .getUser();
 
     EOD eod =
         EOD.builder()
@@ -77,8 +103,7 @@ public class EODService {
       double totalAmount = allTransactions.cashTotal + allTransactions.mobileTotal;
       System.out.println("Non sale are: " + totalAmount);
 
-      double expectedTotal =
-          previousDayTotal + totalAmount;
+      double expectedTotal = previousDayTotal + totalAmount;
 
       // update total debtors
       double previousDebt = Optional.ofNullable(previousEod.getTotalDebtors()).orElse(0D);
@@ -128,7 +153,6 @@ public class EODService {
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
             localDate, LocalDate.now(), "MOBILE MONEY");
 
-
     eodTrasactions.addAll(mobileMoneyTransactions);
 
     double totalCashTransactions =
@@ -150,7 +174,11 @@ public class EODService {
 
   private CurAssets getTodaySales(LocalDate localDate) {
     Date date = Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
-    List<SaleOrder> sales = orderService.fetchByDateRange(date, date);
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    List<SaleOrder> sales = orderService.fetchByShopAndDateRange(userShop.getShop(), date, date);
 
     double totalCashSale = 0D;
     double totalMobileSale = 0D;

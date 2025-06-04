@@ -1,10 +1,12 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
+import org.example.qposbackend.shop.Shop;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,5 +36,8 @@ public class TranHeader extends IntegrityAttributes{
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name="tran_header_id")
     private List<PartTran> partTrans;
-
+    @ManyToOne
+    @JoinColumn
+    @JsonIgnore
+    private Shop shop;
 }

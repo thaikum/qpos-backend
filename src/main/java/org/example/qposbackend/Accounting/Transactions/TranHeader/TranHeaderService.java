@@ -37,7 +37,8 @@ public class TranHeaderService {
     User user =
         auditorAware
             .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not logged in."));
+            .orElseThrow(() -> new NoSuchElementException("User not logged in."))
+            .getUser();
     Map<String, Double> accountMap = new HashMap<>();
 
     List<Long> ids = new ArrayList<>();
@@ -79,7 +80,8 @@ public class TranHeaderService {
     User user =
         auditorAware
             .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not logged in."));
+            .orElseThrow(() -> new NoSuchElementException("User not logged in."))
+            .getUser();
     Map<String, Double> accountMap = new HashMap<>();
 
     List<Long> ids = new ArrayList<>();
@@ -106,7 +108,8 @@ public class TranHeaderService {
       User user =
           springSecurityAuditorAware
               .getCurrentAuditor()
-              .orElseThrow(() -> new NoSuchElementException("User not logged in"));
+              .orElseThrow(() -> new NoSuchElementException("User not logged in"))
+              .getUser();
       TranHeader tranHeader =
           TranHeader.builder()
               .postedBy(user)

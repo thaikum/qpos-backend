@@ -31,7 +31,10 @@ public class ShopService {
   @Transactional
   public Shop createShop(CreateShopInput input) {
     User user =
-        auditorAware.getCurrentAuditor().orElseThrow(() -> new RuntimeException("User not found"));
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new RuntimeException("User not found"))
+            .getUser();
     Shop shop = objectMapper.convertValue(input, Shop.class);
     shop = shopRepository.save(shop);
     userShopService.addUserToShop(user, shop);

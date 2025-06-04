@@ -1,5 +1,6 @@
-package org.example.qposbackend.Order;
+package org.example.qposbackend.order;
 
+import graphql.util.Pair;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +10,8 @@ import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
-import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
+import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
 import org.example.qposbackend.EOD.EOD;
 import org.example.qposbackend.EOD.EODRepository;
@@ -19,13 +21,13 @@ import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceRepository;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
-import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.OffersAndPromotions.Offers.OfferService;
-import org.example.qposbackend.Order.OrderItem.OrderItem;
-import org.example.qposbackend.Order.OrderItem.OrderItemRepository;
-import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInward;
-import org.example.qposbackend.Order.OrderItem.ReturnInward.ReturnInwardRepository;
+import org.example.qposbackend.order.orderItem.OrderItem;
+import org.example.qposbackend.order.orderItem.OrderItemRepository;
+import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInward;
+import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInwardRepository;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.example.qposbackend.shop.Shop;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -48,10 +50,21 @@ public class OrderService {
   private final OfferService offerService;
   private final PriceRepository priceRepository;
 
-  public List<SaleOrder> fetchByDateRange(Date start, Date end) {
-    List<SaleOrder> ordersWithinRange = orderRepository.fetchAllByDateRange(start, end);
+  public List<SaleOrder> fetchByDateRange(DateRange dateRange) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-    List<SaleOrder> returnedItems = orderRepository.fetchAllSalesReturnedWithinRange(start, end);
+    return fetchByShopAndDateRange(userShop.getShop(), dateRange.start(), dateRange.end());
+  }
+
+  public List<SaleOrder> fetchByShopAndDateRange(Shop shop, Date start, Date end) {
+    List<SaleOrder> ordersWithinRange =
+        orderRepository.fetchAllByDateRangeAndShop(start, end, shop.getId());
+
+    List<SaleOrder> returnedItems =
+        orderRepository.fetchAllSalesReturnedWithinRangeAndShop(start, end, shop.getId());
     returnedItems.forEach(
         order -> {
           order.setOrderItems(
@@ -66,8 +79,13 @@ public class OrderService {
 
   @Transactional
   public void processOrder(SaleOrder saleOrder) {
-    Date saleDate = getSaleDate();
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    Date saleDate = getSaleDate(userShop.getShop());
 
+    saleOrder.setShop(userShop.getShop());
     saleOrder.setOrderItems(
         saleOrder.getOrderItems().stream()
             .peek(
@@ -100,81 +118,33 @@ public class OrderService {
               .filter(v -> v.getQuantityUnderThisPrice() > 0)
               .toList();
 
+
+      List<Pair<Integer, Price>> quantityDeduction =
+          processAmountDeduction(orderItem.getQuantity(), validPrices);
+
       List<Price> changedPrices = new ArrayList<>();
-      if (!validPrices.isEmpty()) {
-        Optional<Price> priceOptional =
-            validPrices.stream().filter(v -> v.getStatus().equals(PriceStatus.ACTIVE)).findAny();
-        double totalQuantity =
-            validPrices.stream().mapToDouble(Price::getQuantityUnderThisPrice).sum();
-
-        if (priceOptional.isPresent()) {
-          if (orderItem.getQuantity() > totalQuantity) {
-            throw new RuntimeException("No enough stock");
-          } else {
-            Price price = priceOptional.get();
-            inventoryItem.setQuantity(inventoryItem.getQuantity() - orderItem.getQuantity());
-
-            if (validPrices.size() == 1) {
-              price.setQuantityUnderThisPrice(
-                  price.getQuantityUnderThisPrice() - orderItem.getQuantity());
-              orderItem.setBuyingPrice(price.getBuyingPrice());
-              changedPrices.add(price);
-            } else {
-              Stack<Price> sortedPrices =
-                  validPrices.stream()
-                      .sorted(
-                          Comparator.comparingLong(
-                                  (a -> ((Price) a).getCreationTimestamp().getTime()))
-                              .reversed())
-                      .collect(Collectors.toCollection(Stack::new));
-
-              int quantity = orderItem.getQuantity();
-              System.out.println("The length is " + sortedPrices.size());
-              var first = sortedPrices.pop();
-
-              if (quantity <= first.getQuantityUnderThisPrice()) {
-                orderItem.setBuyingPrice(first.getBuyingPrice());
-                first.setQuantityUnderThisPrice(
-                    first.getQuantityUnderThisPrice() - orderItem.getQuantity());
-                changedPrices.add(first);
-              } else {
-                orderItem.setQuantity(first.getQuantityUnderThisPrice());
-                orderItem.setBuyingPrice(first.getBuyingPrice());
-                quantity -= first.getQuantityUnderThisPrice();
-                first.setQuantityUnderThisPrice(0);
-                changedPrices.add(price);
-
-                while (quantity > 0) {
-                  first = sortedPrices.pop();
-                  OrderItem newOrderItem =
-                      OrderItem.builder()
-                          .buyingPrice(first.getBuyingPrice())
-                          .price(orderItem.getPrice())
-                          .discount(orderItem.getDiscount())
-                          .discountMode(orderItem.getDiscountMode())
-                          .inventoryItem(orderItem.getInventoryItem())
-                          .quantity(Math.min(quantity, first.getQuantityUnderThisPrice()))
-                          .build();
-                  addedOrderItems.add(newOrderItem);
-                  price.setQuantityUnderThisPrice(
-                      Math.min(quantity, first.getQuantityUnderThisPrice()));
-                  changedPrices.add(price);
-                  quantity -= Math.min(quantity, first.getQuantityUnderThisPrice());
-                }
-              }
-            }
-
-            inventoryItem = inventoryItemRepository.save(inventoryItem);
-            orderItem.setInventoryItem(inventoryItem);
-            priceRepository.saveAll(changedPrices);
-          }
-
-        } else {
-          throw new RuntimeException("No price set for item " + inventoryItem.getItem().getName());
+      for(int x = 0; x < quantityDeduction.size(); x++){
+        Pair<Integer, Price> pair = quantityDeduction.get(x);
+        pair.second.setQuantityUnderThisPrice(pair.second.getQuantityUnderThisPrice() - pair.first);
+        changedPrices.add(pair.second);
+        if(x == 0){
+          orderItem.setQuantity(pair.first);
+        }else{
+          OrderItem orderItem1 = OrderItem.builder()
+                  .buyingPrice(pair.second.getBuyingPrice())
+                  .price(orderItem.getPrice())
+                  .discount(orderItem.getDiscount())
+                  .quantity(pair.first)
+                  .inventoryItem(inventoryItem)
+                  .discountMode(orderItem.getDiscountMode())
+                  .build();
+          addedOrderItems.add(orderItem1);
         }
-      } else {
-        throw new RuntimeException("No price set for item " + inventoryItem.getItem().getName());
       }
+
+      inventoryItem = inventoryItemRepository.save(inventoryItem);
+      orderItem.setInventoryItem(inventoryItem);
+      priceRepository.saveAll(changedPrices);
     }
 
     addedOrderItems.addAll(saleOrder.getOrderItems());
@@ -184,8 +154,26 @@ public class OrderService {
     orderRepository.save(saleOrder);
   }
 
+  public List<Pair<Integer, Price>> processAmountDeduction(Integer quantity, List<Price> prices) {
+    List<Pair<Integer, Price>> result = new ArrayList<>();
+    List<Price> sortedPrices =
+        prices.stream().sorted(Comparator.comparingInt(Price::getId)).toList();
+    for (Price price : sortedPrices) {
+      int quantityDeducted = Math.min(quantity, price.getQuantityUnderThisPrice());
+      quantity -= quantityDeducted;
+      result.add(new Pair<>(quantityDeducted, price));
+      if (quantity == 0) return result;
+    }
+    log.info("Current quantity is: {}", quantity);
+    throw new RuntimeException("Not enough stock");
+  }
+
   @Transactional
   public void returnItem(ReturnItemRequest returnItemRequest) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
     OrderItem orderItem =
         orderItemRepository
             .findById(returnItemRequest.orderItemId())
@@ -194,7 +182,7 @@ public class OrderService {
         orderRepository
             .findByOrderItems(orderItem)
             .orElseThrow(() -> new NoSuchElementException("Sale not found."));
-    Date saleDate = getSaleDate();
+    Date saleDate = getSaleDate(userShop.getShop());
 
     long dateDiff =
         ChronoUnit.DAYS.between(saleOrder.getDate().toInstant(), new Date().toInstant());
@@ -230,12 +218,11 @@ public class OrderService {
 
   private TranHeader returnItemTransactions(
       SaleOrder saleOrder, OrderItem orderItem, int quantity) {
-    User user =
+    UserShop userShop =
         auditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
-    //        Double amountSpent = (orderItem.getReturnInward().getQuantityReturned() *
-    // orderItem.getInventoryItem().getSellingPrice()) - orderItem.getDiscount();
+
     String accountName = "CASH";
     Account account =
         accountRepository
@@ -257,9 +244,9 @@ public class OrderService {
     TranHeader tranHeader =
         TranHeader.builder()
             .status(TransactionStatus.POSTED.name())
-            .postedDate(getSaleDate())
+            .postedDate(getSaleDate(userShop.getShop()))
             .postedBy(saleOrder.getCreatedBy())
-            .verifiedBy(user)
+            .verifiedBy(userShop.getUser())
             .status(TransactionStatus.UNVERIFIED.name())
             .build();
     List<PartTran> partTranList = new ArrayList<>();
@@ -316,20 +303,21 @@ public class OrderService {
     return tranHeader;
   }
 
-  private TranHeader makeSale(SaleOrder saleOrder) {
+  protected TranHeader makeSale(SaleOrder saleOrder) {
 
-    User user =
+    UserShop userShop =
         auditorAware
             .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not logged in"));
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
 
     TranHeader tranHeader =
         TranHeader.builder()
             .status(TransactionStatus.POSTED.name())
-            .postedDate(getSaleDate())
+            .postedDate(getSaleDate(userShop.getShop()))
             .postedBy(saleOrder.getCreatedBy())
-            .verifiedBy(user)
+            .verifiedBy(userShop.getUser())
             .status(TransactionStatus.UNVERIFIED.name())
+            .shop(userShop.getShop())
             .build();
 
     Account cashAccount =
@@ -486,8 +474,8 @@ public class OrderService {
     log.info("All sales accounted for");
   }
 
-  private Date getSaleDate() {
-    Optional<EOD> eodOptional = eodRepository.findLastEOD();
+  private Date getSaleDate(Shop shop) {
+    Optional<EOD> eodOptional = eodRepository.findLastEODAndShop(shop);
 
     if (eodOptional.isPresent()) {
       EOD eod = eodOptional.get();

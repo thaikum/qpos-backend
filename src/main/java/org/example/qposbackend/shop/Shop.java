@@ -2,13 +2,15 @@ package org.example.qposbackend.shop;
 
 import jakarta.persistence.*;
 import java.util.Date;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Setter;
+
+import lombok.*;
 import org.example.qposbackend.Utils.StoqItUtils;
 
 @Data
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Shop {
 
   @Id

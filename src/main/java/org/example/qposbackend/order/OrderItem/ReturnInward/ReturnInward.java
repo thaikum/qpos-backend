@@ -1,4 +1,4 @@
-package org.example.qposbackend.Order.OrderItem.ReturnInward;
+package org.example.qposbackend.order.orderItem.ReturnInward;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
