@@ -30,7 +30,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    log.info("Attempting authorization");
     String authHeader = request.getHeader("Authorization");
     String token = null;
     String username = null;
@@ -41,13 +40,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       shopCode = jwtUtil.getShopCode(token);
     }
 
-    log.info("Username: {}, ShopCode: {}", username, shopCode);
     if (username != null
         && shopCode != null
         && SecurityContextHolder.getContext().getAuthentication() == null) {
       Optional<UserShop> userShopOptional =
           userShopRepository.findUserShopByShop_CodeAndUser_email(shopCode, username);
-      log.info("User is: {}", userShopOptional);
       SystemUserDetails userDetails = new SystemUserDetails(userShopOptional.get());
       if (jwtUtil.validateToken(token, userDetails)) {
         UsernamePasswordAuthenticationToken authToken =

@@ -10,6 +10,7 @@ import org.example.qposbackend.Authorization.SystemUserDetails.SystemUserDetails
 import org.example.qposbackend.Authorization.User.Password.Password;
 import org.example.qposbackend.Authorization.User.dto.LoginResponse;
 import org.example.qposbackend.Authorization.User.dto.UserCredentials;
+import org.example.qposbackend.Authorization.User.dto.UserDto;
 import org.example.qposbackend.DTOs.AuthRequest;
 import org.example.qposbackend.DTOs.PasswordChange;
 import org.example.qposbackend.Security.Jwt.JwtUtil;
@@ -41,13 +42,10 @@ public class UserService {
                   new UserCredentials(authRequest.email().trim(), authRequest.shopCode()),
                   authRequest.password().trim()));
 
-      log.info("Authentication is: {}", authentication);
-
       User user = userRepository.findUserByEmail(authRequest.email()).orElseThrow();
       String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
       return new LoginResponse(token, user);
     } catch (Exception ex) {
-      ex.printStackTrace();
       throw new RuntimeException(ex.getMessage());
     }
   }
@@ -66,7 +64,7 @@ public class UserService {
       if (user.isPresent()) {
         List<Password> passwords = user.get().getPasswords();
         if (passwords.size() == 12) {
-          passwords.remove(0);
+          passwords.removeFirst();
         }
         passwords.add(
             Password.builder().password(passwordEncoder.encode(passwordChange.password())).build());
@@ -81,12 +79,43 @@ public class UserService {
     }
   }
 
+  public User createUser(UserDto userDto) {
+    if (userRepository.findUserByEmail(userDto.getEmail()).isPresent()) {
+      throw new RuntimeException("User with email " + userDto.getEmail() + " already exists");
+    }
+
+    String defaultPassword = userDto.getPassword() != null ? userDto.getPassword() : "12345678";
+    Password password =
+        Password.builder().password(passwordEncoder.encode(defaultPassword)).build();
+
+    User user =
+        User.builder()
+            .email(userDto.getEmail().trim())
+            .firstName(userDto.getFirstName())
+            .lastName(userDto.getLastName())
+            .phoneNumber(userDto.getPhoneNumber())
+            .idType(userDto.getIdType())
+            .idNumber(userDto.getIdNumber())
+            .passwords(List.of(password))
+            .enabled(true)
+            .isLoggedIn(false)
+            .build();
+
+    User savedUser = userRepository.save(user);
+    log.info("User created successfully with email: {}", savedUser.getEmail());
+
+    return savedUser;
+  }
+
+  public Optional<User> searchUser(String value) {
+    return userRepository.findUserByIdNumberOrEmail(value.trim());
+  }
+
   @Bean
   public void createInitialUser() {
     Optional<SystemRole> optionalSystemRole = systemRoleRepository.findById("ADMIN");
 
     if (optionalSystemRole.isPresent() && userRepository.findAll().isEmpty()) {
-      SystemRole systemRole = optionalSystemRole.get();
 
       User user =
           User.builder()
@@ -94,13 +123,14 @@ public class UserService {
               .enabled(true)
               .firstName("Fredrick")
               .lastName("Thaiku")
+              .phoneNumber("+254700000000")
               .idType(IdType.NATIONAL_ID)
+              .idNumber("12345678")
               .passwords(
                   List.of(
                       Password.builder()
                           .password(passwordEncoder.encode("@Fredsystem5647"))
                           .build()))
-              .role(systemRole)
               .build();
 
       userRepository.save(user);

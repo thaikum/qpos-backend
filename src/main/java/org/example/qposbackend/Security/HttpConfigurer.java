@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -24,6 +25,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 @DependsOn({"corsConfig", "StoqItAuthenticationProvider"})
 public class HttpConfigurer {
@@ -100,6 +102,10 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.GET, "users")
                     .hasAuthority(PrivilegesEnum.VIEW_USERS.name())
                     .requestMatchers(HttpMethod.POST, "users/change-password")
+                    .authenticated()
+
+                    //  =========================== USER SHOPS =======================
+                    .requestMatchers("user-shops/**")
                     .authenticated()
 
                     // ============================= RESOURCES =========================
@@ -201,7 +207,7 @@ public class HttpConfigurer {
                     .requestMatchers("/users/login")
                     .permitAll()
                     .anyRequest()
-                    .denyAll())
+                    .authenticated())
         .formLogin(AbstractHttpConfigurer::disable)
         .authenticationProvider(stoqItAuthenticationProvider)
         .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)

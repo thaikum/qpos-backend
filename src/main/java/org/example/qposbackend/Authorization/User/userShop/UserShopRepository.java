@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,4 +28,16 @@ public interface UserShopRepository extends JpaRepository<UserShop, Long> {
   Optional<UserShop> findDefaultUserShopByUser_email(String email);
 
   Optional<UserShop> findUserShopByUserAndShop(User user, Shop shop);
+  
+  // Additional methods for CRUD operations
+  List<UserShop> findByShopAndIsDeletedFalse(Shop shop);
+  
+  Optional<UserShop> findByIdAndShopAndIsDeletedFalse(Long id, Shop shop);
+  
+  List<UserShop> findByShopAndIsDeletedFalseOrderByCreatedAtDesc(Shop shop);
+  
+  boolean existsByUserAndShopAndIsDeletedFalse(User user, Shop shop);
+  
+  // Method to find all shop associations for a user across all shops
+  List<UserShop> findByUserAndIsDeletedFalse(User user);
 }

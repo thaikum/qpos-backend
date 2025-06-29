@@ -20,7 +20,6 @@ import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceRepository;
-import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 import org.example.qposbackend.OffersAndPromotions.Offers.OfferService;
 import org.example.qposbackend.order.orderItem.OrderItem;
 import org.example.qposbackend.order.orderItem.OrderItemRepository;
@@ -216,7 +215,7 @@ public class OrderService {
     }
   }
 
-  private TranHeader returnItemTransactions(
+  protected TranHeader returnItemTransactions(
       SaleOrder saleOrder, OrderItem orderItem, int quantity) {
     UserShop userShop =
         auditorAware

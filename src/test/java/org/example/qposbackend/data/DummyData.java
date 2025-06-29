@@ -1,6 +1,7 @@
 package org.example.qposbackend.data;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -23,6 +24,22 @@ import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.order.orderItem.OrderItem;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInward;
 import org.example.qposbackend.shop.Shop;
+import org.example.qposbackend.DTOs.DateRange;
+import org.example.qposbackend.DTOs.ReturnItemRequest;
+import org.example.qposbackend.Accounting.Accounts.Account;
+import org.example.qposbackend.DTOs.BundledConditionDTO;
+import org.example.qposbackend.DTOs.OfferDTO;
+import org.example.qposbackend.OffersAndPromotions.Offers.Offer;
+import org.example.qposbackend.OffersAndPromotions.BundledConditions.BundledCondition;
+import org.example.qposbackend.OffersAndPromotions.DiscountType;
+import org.example.qposbackend.OffersAndPromotions.OfferBasedOn;
+import org.example.qposbackend.OffersAndPromotions.OfferOn;
+import org.example.qposbackend.OffersAndPromotions.OfferType;
+import org.example.qposbackend.OffersAndPromotions.AppliedOffersAndTotalDiscount;
+import org.example.qposbackend.OffersAndPromotions.OrderWithDiscountsAndAppliedOffers;
+import org.example.qposbackend.Item.ItemClassification.Category.Category;
+import org.example.qposbackend.Item.ItemClassification.MainCategory.MainCategory;
+import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategory;
 
 public class DummyData {
   public static Password getDummyPassword() {
@@ -167,5 +184,136 @@ public class DummyData {
         .amountInCredit(0.0)
         .shop(getDummyShop())
         .build();
+  }
+
+  public static DateRange getDummyDateRange() {
+    Calendar cal = Calendar.getInstance();
+    Date endDate = cal.getTime();
+    cal.add(Calendar.DAY_OF_MONTH, -30);
+    Date startDate = cal.getTime();
+    return new DateRange(startDate, endDate);
+  }
+
+  public static ReturnItemRequest getDummyReturnItemRequest() {
+    return new ReturnItemRequest(1L, "Defective item", 1, 0.0);
+  }
+
+  public static Account getDummyAccount() {
+    return getDummyAccount("CASH");
+  }
+
+  public static Account getDummyAccount(String accountName) {
+    Account account = new Account();
+    account.setId(1L);
+    account.setAccountName(accountName);
+    account.setBalance(1000.0);
+    account.setAccountNumber("ACC001");
+    return account;
+  }
+
+  public static Offer getDummyOffer() {
+    return getDummyOffer("Test Offer");
+  }
+
+  public static Offer getDummyOffer(String offerName) {
+    Offer offer = new Offer();
+    offer.setId(1L);
+    offer.setOfferName(offerName);
+    offer.setDescription("Test offer description");
+    offer.setEffectOn(OfferOn.ITEMS);
+    offer.setBasedOn(OfferBasedOn.QUANTITY);
+    offer.setDiscountType(DiscountType.PERCENTAGE);
+    offer.setDiscountAllowed(10.0);
+    offer.setMinQuantity(2);
+    offer.setActive(true);
+    offer.setApplyMultipleOnSameOrder(false);
+    offer.setMaxDiscountPerOrder(50.0);
+    return offer;
+  }
+
+  public static OfferDTO getDummyOfferDTO() {
+    return getDummyOfferDTO("Test Offer DTO");
+  }
+
+  public static OfferDTO getDummyOfferDTO(String offerName) {
+    OfferDTO offerDTO = new OfferDTO();
+    offerDTO.setOfferName(offerName);
+    offerDTO.setDescription("Test offer DTO description");
+    offerDTO.setOfferType(OfferType.ITEM_BASED);
+    offerDTO.setDiscountType(DiscountType.PERCENTAGE);
+    offerDTO.setDiscountAllowed(15.0);
+    offerDTO.setEffectOn(OfferOn.ITEMS);
+    offerDTO.setBasedOn(OfferBasedOn.ITEMS);
+    offerDTO.setAffectedIds(List.of(1L, 2L));
+    offerDTO.setActive(true);
+    offerDTO.setApplyMultipleOnSameOrder(false);
+    offerDTO.setMaxDiscountPerOrder(100.0);
+    return offerDTO;
+  }
+
+  public static BundledConditionDTO getDummyBundledConditionDTO() {
+    BundledConditionDTO dto = new BundledConditionDTO();
+    dto.setValueId(1L);
+    dto.setMinQuantity(2);
+    dto.setMinAmount(50.0);
+    return dto;
+  }
+
+  public static BundledCondition getDummyBundledCondition() {
+    BundledCondition condition = new BundledCondition();
+    condition.setId(1L);
+    condition.setMinQuantity(2);
+    condition.setMinAmount(50.0);
+    return condition;
+  }
+
+  public static Category getDummyCategory() {
+    return getDummyCategory("Test Category");
+  }
+
+  public static Category getDummyCategory(String categoryName) {
+    Category category = new Category();
+    category.setId(1L);
+    category.setCategoryName(categoryName);
+    category.setMainCategory(getDummyMainCategory());
+    return category;
+  }
+
+  public static MainCategory getDummyMainCategory() {
+    return getDummyMainCategory("Test Main Category");
+  }
+
+  public static MainCategory getDummyMainCategory(String mainCategoryName) {
+    MainCategory mainCategory = new MainCategory();
+    mainCategory.setId(1L);
+    mainCategory.setMainCategoryName(mainCategoryName);
+    return mainCategory;
+  }
+
+  public static SubCategory getDummySubCategory() {
+    return getDummySubCategory("Test Sub Category");
+  }
+
+  public static SubCategory getDummySubCategory(String subCategoryName) {
+    SubCategory subCategory = new SubCategory();
+    subCategory.setId(1L);
+    subCategory.setSubCategoryName(subCategoryName);
+    subCategory.setCategory(getDummyCategory());
+    return subCategory;
+  }
+
+  public static AppliedOffersAndTotalDiscount getDummyAppliedOffersAndTotalDiscount() {
+    return new AppliedOffersAndTotalDiscount(
+        getDummyOffer(), 
+        25.0, 
+        List.of(getDummyOrderItem())
+    );
+  }
+
+  public static OrderWithDiscountsAndAppliedOffers getDummyOrderWithDiscountsAndAppliedOffers() {
+    return new OrderWithDiscountsAndAppliedOffers(
+        getDummySaleOrder(),
+        List.of(getDummyAppliedOffersAndTotalDiscount())
+    );
   }
 }

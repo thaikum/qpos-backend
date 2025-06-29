@@ -29,7 +29,10 @@ public class Shop {
   private String address;
   private String location;
 
+  @Builder.Default
   private boolean active = true;
+
+  @Builder.Default
   private boolean deleted = false;
 
   private String currency;

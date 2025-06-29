@@ -35,6 +35,9 @@ public class User {
   @Column(length = 20)
   private String lastName;
 
+  @Column(length = 20)
+  private String phoneNumber;
+
   private IdType idType;
 
   @Column(length = 50)
