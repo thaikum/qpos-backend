@@ -39,6 +39,7 @@ public class ResponseExceptionHandler {
     GenericExceptions.class
   })
   public ResponseEntity<MessageResponse> handleServerError(Exception ex) {
+    ex.printStackTrace();
     return new ResponseEntity<>(
         new MessageResponse(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
   }

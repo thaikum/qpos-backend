@@ -2,14 +2,20 @@ package org.example.qposbackend.order;
 
 import graphql.util.Pair;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Accounts.Account;
 import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
-import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
+import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
@@ -21,18 +27,13 @@ import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceRepository;
 import org.example.qposbackend.OffersAndPromotions.Offers.OfferService;
+import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.order.orderItem.OrderItem;
 import org.example.qposbackend.order.orderItem.OrderItemRepository;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInward;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInwardRepository;
-import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.shop.Shop;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +49,7 @@ public class OrderService {
   private final EODRepository eodRepository;
   private final OfferService offerService;
   private final PriceRepository priceRepository;
+  private final ShopAccountRepository shopAccountRepository;
 
   public List<SaleOrder> fetchByDateRange(DateRange dateRange) {
     UserShop userShop =
@@ -94,12 +96,13 @@ public class OrderService {
                           .findById(orderItem.getInventoryItem().getId())
                           .orElseThrow(() -> new RuntimeException("No inventory found."));
 
-                  if (orderItem.getDiscount() > inventoryItem.getDiscountAllowed()) {
+                  if (orderItem.getDiscount()
+                      > inventoryItem.getPriceDetails().getDiscountAllowed()) {
                     throw new NotAcceptableException(
                         "Maximum discount for "
                             + inventoryItem.getItem().getName()
                             + " is "
-                            + inventoryItem.getDiscountAllowed());
+                            + inventoryItem.getPriceDetails().getDiscountAllowed());
                   }
                   orderItem.setInventoryItem(inventoryItem);
                 }))
@@ -117,19 +120,19 @@ public class OrderService {
               .filter(v -> v.getQuantityUnderThisPrice() > 0)
               .toList();
 
-
       List<Pair<Integer, Price>> quantityDeduction =
           processAmountDeduction(orderItem.getQuantity(), validPrices);
 
       List<Price> changedPrices = new ArrayList<>();
-      for(int x = 0; x < quantityDeduction.size(); x++){
+      for (int x = 0; x < quantityDeduction.size(); x++) {
         Pair<Integer, Price> pair = quantityDeduction.get(x);
         pair.second.setQuantityUnderThisPrice(pair.second.getQuantityUnderThisPrice() - pair.first);
         changedPrices.add(pair.second);
-        if(x == 0){
+        if (x == 0) {
           orderItem.setQuantity(pair.first);
-        }else{
-          OrderItem orderItem1 = OrderItem.builder()
+        } else {
+          OrderItem orderItem1 =
+              OrderItem.builder()
                   .buyingPrice(pair.second.getBuyingPrice())
                   .price(orderItem.getPrice())
                   .discount(orderItem.getDiscount())
@@ -149,7 +152,9 @@ public class OrderService {
     addedOrderItems.addAll(saleOrder.getOrderItems());
     saleOrder.setOrderItems(addedOrderItems);
     saleOrder.setDate(saleDate);
-    tranHeaderService.saveAndVerifyTranHeader(makeSale(saleOrder));
+    TranHeader tranHeader = makeSale(saleOrder);
+    tranHeaderService.saveAndVerifyTranHeader(tranHeader);
+
     orderRepository.save(saleOrder);
   }
 
@@ -206,7 +211,7 @@ public class OrderService {
 
       orderItemRepository.save(orderItem);
       TranHeader tranHeader =
-          returnItemTransactions(saleOrder, orderItem, returnItemRequest.quantity());
+          returnItemTransactions(orderItem, returnItemRequest.quantity());
       tranHeaderService.saveAndVerifyTranHeader(tranHeader);
     } else {
       ReturnInward returnInward = orderItem.getReturnInward();
@@ -215,36 +220,38 @@ public class OrderService {
     }
   }
 
-  protected TranHeader returnItemTransactions(
-      SaleOrder saleOrder, OrderItem orderItem, int quantity) {
+  protected TranHeader returnItemTransactions(OrderItem orderItem, int quantity) {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
 
     String accountName = "CASH";
-    Account account =
-        accountRepository
-            .findByAccountName(accountName)
+    ShopAccount account =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), accountName)
             .orElseThrow(() -> new NoSuchElementException(accountName + " account not found."));
-    Account costOfGoodsAccount =
-        accountRepository
-            .findByAccountName("COST OF GOODS")
+
+    ShopAccount costOfGoodsAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "COST OF GOODS")
             .orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
-    Account salesAccount =
-        accountRepository
-            .findByAccountName("SALES REVENUE")
+
+    ShopAccount salesAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "SALES REVENUE")
             .orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
-    Account inventoryAccount =
-        accountRepository
-            .findByAccountName("INVENTORY")
+
+    ShopAccount inventoryAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "INVENTORY")
             .orElseThrow(() -> new NoSuchElementException("INVENTORY account not found"));
 
     TranHeader tranHeader =
         TranHeader.builder()
             .status(TransactionStatus.POSTED.name())
             .postedDate(getSaleDate(userShop.getShop()))
-            .postedBy(saleOrder.getCreatedBy())
+            .postedBy(userShop)
             .verifiedBy(userShop.getUser())
             .status(TransactionStatus.UNVERIFIED.name())
             .build();
@@ -255,10 +262,10 @@ public class OrderService {
       PartTran tran =
           PartTran.builder()
               .tranType('D')
-              .amount(orderItem.getInventoryItem().getBuyingPrice())
+              .amount(orderItem.getInventoryItem().getPriceDetails().getBuyingPrice())
               .tranParticulars(
                   "(sales) Returned  " + orderItem.getInventoryItem().getItem().getName())
-              .account(inventoryAccount)
+              .shopAccount(inventoryAccount)
               .partTranNumber(partTranNumber++)
               .build();
       partTranList.add(tran);
@@ -266,10 +273,10 @@ public class OrderService {
       tran =
           PartTran.builder()
               .tranType('C')
-              .amount(orderItem.getInventoryItem().getBuyingPrice())
+              .amount(orderItem.getInventoryItem().getPriceDetails().getBuyingPrice())
               .tranParticulars(
                   "(sales) Cost of returned " + orderItem.getInventoryItem().getItem().getName())
-              .account(costOfGoodsAccount)
+              .shopAccount(costOfGoodsAccount)
               .partTranNumber(partTranNumber++)
               .build();
       partTranList.add(tran);
@@ -281,7 +288,7 @@ public class OrderService {
               .amount(orderItem.getPrice() - orderItem.getDiscount())
               .tranParticulars(
                   "(sales) Return of " + orderItem.getInventoryItem().getItem().getName())
-              .account(salesAccount)
+              .shopAccount(salesAccount)
               .partTranNumber(partTranNumber++)
               .build();
       partTranList.add(tran);
@@ -292,7 +299,7 @@ public class OrderService {
               .amount(orderItem.getPrice() - orderItem.getDiscount())
               .tranParticulars(
                   "(sales) Return of " + orderItem.getInventoryItem().getItem().getName())
-              .account(account)
+              .shopAccount(account)
               .partTranNumber(partTranNumber++)
               .build();
       partTranList.add(tran);
@@ -313,31 +320,34 @@ public class OrderService {
         TranHeader.builder()
             .status(TransactionStatus.POSTED.name())
             .postedDate(getSaleDate(userShop.getShop()))
-            .postedBy(saleOrder.getCreatedBy())
+            .postedBy(userShop)
             .verifiedBy(userShop.getUser())
             .status(TransactionStatus.UNVERIFIED.name())
-            .shop(userShop.getShop())
             .build();
 
-    Account cashAccount =
-        accountRepository
-            .findByAccountName("CASH")
+    ShopAccount cashAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "CASH")
             .orElseThrow(() -> new NoSuchElementException("CASH account not found"));
-    Account salesAccount =
-        accountRepository
-            .findByAccountName("SALES REVENUE")
-            .orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
-    Account costOfGoodsAccount =
-        accountRepository
-            .findByAccountName("COST OF GOODS")
+
+    ShopAccount costOfGoodsAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "COST OF GOODS")
             .orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
-    Account inventoryAccount =
-        accountRepository
-            .findByAccountName("INVENTORY")
+
+    ShopAccount salesAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "SALES REVENUE")
+            .orElseThrow(() -> new NoSuchElementException("SALES REVENUE account not found"));
+
+    ShopAccount inventoryAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "INVENTORY")
             .orElseThrow(() -> new NoSuchElementException("INVENTORY account not found"));
-    Account mobileMoneyAccount =
-        accountRepository
-            .findByAccountName("MOBILE MONEY")
+
+    ShopAccount mobileMoneyAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "MOBILE MONEY")
             .orElseThrow(() -> new NoSuchElementException("MOBILE MONEY account not found"));
 
     double amountInCash =
@@ -363,7 +373,7 @@ public class OrderService {
                 .amount(orderItem.getBuyingPrice())
                 .tranParticulars(
                     "(sales) Sold  " + orderItem.getInventoryItem().getItem().getName())
-                .account(inventoryAccount)
+                .shopAccount(inventoryAccount)
                 .partTranNumber(partTranNumber++)
                 .build();
         partTranList.add(tran);
@@ -374,7 +384,7 @@ public class OrderService {
                 .amount(orderItem.getBuyingPrice())
                 .tranParticulars(
                     "(sales) Cost of " + orderItem.getInventoryItem().getItem().getName())
-                .account(costOfGoodsAccount)
+                .shopAccount(costOfGoodsAccount)
                 .partTranNumber(partTranNumber++)
                 .build();
         partTranList.add(tran);
@@ -386,12 +396,12 @@ public class OrderService {
                 .amount(orderItem.getPrice() - orderItem.getDiscount())
                 .tranParticulars(
                     "(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
-                .account(salesAccount)
+                .shopAccount(salesAccount)
                 .partTranNumber(partTranNumber++)
                 .build();
         partTranList.add(tran);
 
-        Account type = null;
+        ShopAccount type = null;
         if (amountInCash >= orderItem.getPrice() - orderItem.getDiscount()) {
           type = cashAccount;
           amountInCash -= (orderItem.getPrice() - orderItem.getDiscount());
@@ -407,7 +417,7 @@ public class OrderService {
                   .amount(orderItem.getPrice() - orderItem.getDiscount())
                   .tranParticulars(
                       "(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
-                  .account(type)
+                  .shopAccount(type)
                   .partTranNumber(partTranNumber++)
                   .build();
           partTranList.add(tran);
@@ -420,7 +430,7 @@ public class OrderService {
                   .amount(cash)
                   .tranParticulars(
                       "(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
-                  .account(cashAccount)
+                  .shopAccount(cashAccount)
                   .partTranNumber(partTranNumber++)
                   .build();
           partTranList.add(tran);
@@ -431,7 +441,7 @@ public class OrderService {
                   .amount(amountInMobile)
                   .tranParticulars(
                       "(sales) Sale of " + orderItem.getInventoryItem().getItem().getName())
-                  .account(mobileMoneyAccount)
+                  .shopAccount(mobileMoneyAccount)
                   .partTranNumber(partTranNumber++)
                   .build();
           partTranList.add(tran);
@@ -446,7 +456,7 @@ public class OrderService {
   }
 
   //    @Bean
-  private void loadAllSalesInAccount() throws CloneNotSupportedException {
+  private void loadAllSalesInAccount(){
     Account salesAccount =
         accountRepository
             .findByAccountName("SALES REVENUE")
@@ -474,7 +484,7 @@ public class OrderService {
   }
 
   private Date getSaleDate(Shop shop) {
-    Optional<EOD> eodOptional = eodRepository.findLastEODAndShop(shop);
+    Optional<EOD> eodOptional = eodRepository.findLastEODAndShop(shop.getId());
 
     if (eodOptional.isPresent()) {
       EOD eod = eodOptional.get();

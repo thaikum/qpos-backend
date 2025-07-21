@@ -13,6 +13,7 @@ import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.order.OrderService;
 import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.hibernate.sql.results.spi.LoadContexts;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -31,21 +32,40 @@ public class EODService {
   private final SpringSecurityAuditorAware auditorAware;
   private List<PartTran> eodTrasactions = new ArrayList<>();
 
-  public ResponseEntity<DataResponse> fetchByRange(DateRange dateRange) {
+  public List<EOD> fetchByRange(DateRange dateRange) {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
-    return ResponseEntity.ok(
-        new DataResponse(
-            eoDRepository.findAllByShopAndDateBetween(
-                userShop.getShop(), dateRange.start(), dateRange.end()),
-            null));
+
+    return eoDRepository.findAllByShopAndDateBetween(
+        userShop.getShop().getId(), dateRange.start(), dateRange.end());
+  }
+
+  public void performEmptyEOD() {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    Optional<EOD> previousEodOpt = eoDRepository.findLastEODAndShop(userShop.getShop().getId());
+
+    if (previousEodOpt.isPresent()) {
+      EOD prev = previousEodOpt.get();
+      log.info("Previous date is: {}, current date is: {}", prev.getDate(), LocalDate.now());
+      if (prev.getDate().equals(LocalDate.now()) || prev.getDate().isAfter(LocalDate.now())) {
+        throw new RuntimeException("Cannot perform end of day that is in the future");
+      }
+
+      EndOfDayDTO endOfDayDTO =
+          new EndOfDayDTO(
+              prev.getBalanceBroughtDownCash(), prev.getBalanceBroughtDownMobile(), 0D, 0D);
+      performEndOfDay(endOfDayDTO);
+    } else {
+      throw new RuntimeException("Cannot perform empty EOD. No previous EOD found.");
+    }
   }
 
   /**
-   * \ Fix with values Expected: 2873 Available: 3280 Cash: 2835 Mpesa: 445
-   *
    * @param endOfDayDTO
    */
   public void performEndOfDay(EndOfDayDTO endOfDayDTO) {
@@ -54,7 +74,7 @@ public class EODService {
         auditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
-    Optional<EOD> previousEodOpt = eoDRepository.findLastEODAndShop(userShop.getShop());
+    Optional<EOD> previousEodOpt = eoDRepository.findLastEODAndShop(userShop.getShop().getId());
 
     CurAssets totalSales =
         getTodaySales(
@@ -76,13 +96,13 @@ public class EODService {
 
     EOD eod =
         EOD.builder()
-            .date(LocalDate.now())
             .balanceBroughtDownCash(endOfDayDTO.balanceBroughtDownCash())
             .totalDebtors(totalSales.debtTotal)
             .balanceBroughtDownMobile(endOfDayDTO.balanceBroughtDownMobile())
             .totalCashSale(totalCashSale)
             .totalMobileSale(totalMobileSale)
             .user(user)
+            .shop(userShop.getShop())
             .build();
 
     if (previousEodOpt.isPresent()) {
@@ -94,6 +114,10 @@ public class EODService {
       if (dateDiff == 0) {
         throw new NotAcceptableException("End of Day cannot be done twice in the same day");
       } else {
+        log.info(
+            "Toda is: {}. Tomorrow will be: {}",
+            previousEod.getDate(),
+            previousEod.getDate().plusDays(1));
         eod.setDate(previousEod.getDate().plusDays(1));
       }
 
@@ -113,17 +137,18 @@ public class EODService {
       if (Math.abs(expectedTotal - totalReceivables) > mpesaCost) {
         throw new NotAcceptableException(
             """
-                        Transactions failed to balance. <br/>
-                        Expected: <b>Sh %.2f</b> <br/>
-                        Available: <b>Sh %.2f</b> <br/>
-                        Difference: <b>Sh %.2f</b> <br/>
-                        """
+                                Transactions failed to balance. <br/>
+                                Expected: <b>Sh %.2f</b> <br/>
+                                Available: <b>Sh %.2f</b> <br/>
+                                Difference: <b>Sh %.2f</b> <br/>
+                                """
                 .formatted(expectedTotal, totalReceivables, expectedTotal - totalReceivables));
       }
     }
 
     eod.setInvolvedTransactions(eodTrasactions);
-    eoDRepository.save(eod);
+    EOD eod1 = eoDRepository.save(eod);
+    log.info("Saved EOD: {}", eod1);
   }
 
   private double getPreviousDayTotal(EndOfDayDTO endOfDayDTO, EOD previousEod) {

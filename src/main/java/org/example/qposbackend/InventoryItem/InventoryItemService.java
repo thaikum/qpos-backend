@@ -1,6 +1,7 @@
 package org.example.qposbackend.InventoryItem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -8,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.lang.model.type.NullType;
 
+import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -15,6 +17,9 @@ import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 import org.example.qposbackend.InventoryItem.PriceDetails.PriceDetails;
 import org.example.qposbackend.InventoryItem.PriceDetails.PricingMode;
+import org.example.qposbackend.InventoryItem.quantityAdjustment.QuantityAdjustment;
+import org.example.qposbackend.InventoryItem.quantityAdjustment.QuantityAdjustmentService;
+import org.example.qposbackend.InventoryItem.quantityAdjustment.dto.QuantityAdjustmentDto;
 import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Item.ItemRepository;
 import org.example.qposbackend.Item.ItemService;
@@ -28,6 +33,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 public class InventoryItemService {
+  private final QuantityAdjustmentService quantityAdjustmentService;
+
   @Value("${files.resources}")
   private String resourcesDir;
 
@@ -197,29 +204,31 @@ public class InventoryItemService {
     inventoryItemRepository.save(inventoryItem);
   }
 
-  @DependsOn("categoryCreator")
-  @Bean
-  private NullType migrateItems() {
-    List<InventoryItem> inventoryItems = inventoryItemRepository.findAll();
+  public List<Price> updateInventoryItemPrice(Price price, Long id) {
+    InventoryItem inventoryItem =
+        inventoryItemRepository
+            .findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Inventory Item not found"));
+    Price lastPrice = inventoryItem.getPriceDetails().getPrices().getLast();
+    lastPrice.setSellingPrice(price.getSellingPrice());
+    lastPrice.setBuyingPrice(price.getBuyingPrice());
+    lastPrice.setDiscountAllowed(price.getDiscountAllowed());
+    inventoryItem = inventoryItemRepository.save(inventoryItem);
+    return inventoryItem.getPriceDetails().getPrices();
+  }
 
-    for (InventoryItem inventoryItem : inventoryItems) {
-      if (!Objects.isNull(inventoryItem.getPriceDetails())) continue;
-
-      PriceDetails priceDetails = new PriceDetails();
-      priceDetails.setPricingMode(PricingMode.CUSTOM_SELLING_PRICE);
-
-      Price price = new Price();
-      price.setStatus(PriceStatus.ACTIVE);
-      price.setBuyingPrice(inventoryItem.getBuyingPrice());
-      price.setSellingPrice(inventoryItem.getSellingPrice());
-      price.setDiscountAllowed(inventoryItem.getDiscountAllowed());
-      priceDetails.setPrices(List.of(price));
-
-      inventoryItem.setPriceDetails(priceDetails);
-    }
-
-    inventoryItemRepository.saveAll(inventoryItems);
-    return null;
+  @Transactional
+  public InventoryItem updateInventoryItemQuantity(
+      QuantityAdjustmentDto quantityAdjustmentDto, Long id) {
+    InventoryItem inventoryItem =
+        inventoryItemRepository
+            .findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Inventory Item not found"));
+    quantityAdjustmentService.createQuantityAdjustment(inventoryItem, quantityAdjustmentDto);
+    inventoryItem
+        .getPriceDetails()
+        .adjustInventoryQuantity(quantityAdjustmentDto.quantity() - inventoryItem.getQuantity());
+    return inventoryItemRepository.save(inventoryItem);
   }
 }
 

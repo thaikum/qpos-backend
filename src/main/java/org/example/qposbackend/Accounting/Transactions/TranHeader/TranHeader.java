@@ -1,16 +1,13 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.util.Date;
+import java.util.List;
 import lombok.*;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
-import org.example.qposbackend.shop.Shop;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -26,18 +23,11 @@ public class TranHeader extends IntegrityAttributes{
     private String status;
     private Date postedDate;
     private Date verifiedDate;
-    @ManyToOne(cascade = {CascadeType.DETACH})
-    @JoinColumn()
+    @ManyToOne
+    private UserShop postedBy;
+    @ManyToOne
     private User verifiedBy;
-    @ManyToOne(cascade = {CascadeType.DETACH})
-    @JoinColumn()
-    private User postedBy;
-
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name="tran_header_id")
     private List<PartTran> partTrans;
-    @ManyToOne
-    @JoinColumn
-    @JsonIgnore
-    private Shop shop;
 }

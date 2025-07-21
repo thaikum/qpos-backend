@@ -3,25 +3,24 @@ package org.example.qposbackend.Stock.stocktaking;
 import jakarta.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.qposbackend.Accounting.Accounts.Account;
-import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.*;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
-import org.example.qposbackend.order.orderItem.OrderItem;
-import org.example.qposbackend.order.OrderService;
-import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.StockTakeRecon;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.singleItemRecon.SingleItemRecon;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfig;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfigRepository;
+import org.example.qposbackend.order.OrderService;
+import org.example.qposbackend.order.SaleOrder;
+import org.example.qposbackend.order.orderItem.OrderItem;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -33,9 +32,10 @@ public class StockTakeService {
   private final StockTakeRepository stockTakeRepository;
   private final InventoryItemRepository inventoryItemRepository;
   private final StockTakeReconTypeConfigRepository stockTakeReconTypeConfigRepository;
-  private final AccountRepository accountRepository;
   private final OrderService orderService;
   private final TranHeaderService tranHeaderService;
+  private final ShopAccountRepository shopAccountRepository;
+  private final SpringSecurityAuditorAware auditorAware;
 
   public List<StockTake> getStockTakes() {
     return stockTakeRepository.findAll();
@@ -322,9 +322,11 @@ public class StockTakeService {
       StockTakeItem stockTakeItem,
       SingleItemStockTakeRecon singleItem,
       SaleOrder saleOrder,
-      Account reconAccount,
+      ShopAccount reconAccount,
       String description) {
-    double total = stockTakeItem.getInventoryItem().getSellingPrice() * singleItem.getQuantity();
+    double total =
+        stockTakeItem.getInventoryItem().getPriceDetails().getSellingPrice()
+            * singleItem.getQuantity();
     log.info("Total : {}", total);
     OrderItem orderItem = new OrderItem();
     orderItem.setQuantity(singleItem.getQuantity());
@@ -332,24 +334,34 @@ public class StockTakeService {
     saleOrder.getOrderItems().add(orderItem);
     saleOrder.setAmountInCash(saleOrder.getAmountInCash() + total);
 
-    Account cashAccount =
-        accountRepository
-            .findByAccountName("CASH")
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+    ShopAccount cashAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "CASH")
             .orElseThrow(() -> new NoSuchElementException("CASH" + " account not found."));
 
-    var credit = new PartTranDTO('C', total, description, cashAccount.getAccountNumber());
-    var debit = new PartTranDTO('D', total, description, reconAccount.getAccountNumber());
+    var credit = new PartTranDTO('C', total, description, cashAccount.getId());
+    var debit = new PartTranDTO('D', total, description, reconAccount.getId());
     return new TranHeaderDTO(new Date(), List.of(credit, debit));
   }
 
   private TranHeaderDTO processGoodsAccount(
       StockTakeItem stockTakeItem,
-      Account expenseAccount,
+      ShopAccount expenseAccount,
       SingleItemStockTakeRecon stockTakeRecon,
       String particulars) {
-    Account costOfGoodsAccount =
-        accountRepository
-            .findByAccountName("COST OF GOODS")
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+    ShopAccount costOfGoodsAccount =
+        shopAccountRepository
+            .findByShopAndAccount_AccountName(userShop.getShop(), "COST OF GOODS")
             .orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
 
     PartTranDTO credit =
@@ -360,7 +372,8 @@ public class StockTakeService {
                 .getPriceDetails()
                 .getTotalBuyingPrice(stockTakeRecon.getQuantity()),
             particulars,
-            costOfGoodsAccount.getAccountNumber());
+            costOfGoodsAccount.getId());
+
     PartTranDTO debit =
         new PartTranDTO(
             'D',
@@ -369,14 +382,18 @@ public class StockTakeService {
                 .getPriceDetails()
                 .getTotalBuyingPrice(stockTakeRecon.getQuantity()),
             particulars,
-            expenseAccount.getAccountNumber());
+            expenseAccount.getId());
     return new TranHeaderDTO(new Date(), List.of(credit, debit));
   }
 
   private TranHeaderDTO processPenalty(
-      GroupItemsStockTakeRecon groupItemsStockTakeRecon, Account penaltyAccount) {
-    Account targetAccount =
-        accountRepository
+      GroupItemsStockTakeRecon groupItemsStockTakeRecon, ShopAccount penaltyAccount) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    ShopAccount targetAccount =
+        shopAccountRepository
             .findById(groupItemsStockTakeRecon.getTargetAccountId())
             .orElseThrow(() -> new NoSuchElementException("Target penalty account not found"));
 
@@ -385,13 +402,13 @@ public class StockTakeService {
             'C',
             groupItemsStockTakeRecon.getPenalty(),
             "Penalty: " + groupItemsStockTakeRecon.getDescription(),
-            targetAccount.getAccountNumber());
+            targetAccount.getId());
     PartTranDTO debit =
         new PartTranDTO(
             'D',
             groupItemsStockTakeRecon.getPenalty(),
             "Penalty: " + groupItemsStockTakeRecon.getDescription(),
-            penaltyAccount.getAccountNumber());
+            penaltyAccount.getId());
     return new TranHeaderDTO(new Date(), List.of(credit, debit));
   }
 

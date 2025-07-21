@@ -24,6 +24,7 @@ public class OrderController {
             orderService.processOrder(order);
             return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("Order created successfully"));
         } catch (Exception ex) {
+            ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new MessageResponse(ex.getMessage()));
         }
     }

@@ -433,7 +433,7 @@ public class OrderServiceTest {
     when(orderItemRepository.save(any(OrderItem.class)))
         .thenAnswer(arg -> arg.getArgument(0));
     doNothing().when(tranHeaderService).saveAndVerifyTranHeader(any(TranHeader.class));
-    doReturn(new TranHeader()).when(orderServiceSpy).returnItemTransactions(any(), any(), anyInt());
+    doReturn(new TranHeader()).when(orderServiceSpy).returnItemTransactions(any(), anyInt());
 
     // Act
     orderServiceSpy.returnItem(request);
@@ -520,7 +520,7 @@ public class OrderServiceTest {
     when(orderItemRepository.save(any(OrderItem.class)))
         .thenAnswer(arg -> arg.getArgument(0));
     doNothing().when(tranHeaderService).saveAndVerifyTranHeader(any(TranHeader.class));
-    doReturn(new TranHeader()).when(orderServiceSpy).returnItemTransactions(any(), any(), anyInt());
+    doReturn(new TranHeader()).when(orderServiceSpy).returnItemTransactions(any(), anyInt());
 
     // Act
     orderServiceSpy.returnItem(request);

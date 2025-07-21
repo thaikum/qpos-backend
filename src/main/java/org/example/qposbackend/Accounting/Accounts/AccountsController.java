@@ -28,7 +28,7 @@ public class AccountsController {
 
     @GetMapping
     public ResponseEntity<DataResponse> getAccounts() {
-        List<Account> accounts = accountRepository.findAll();
+        List<Account> accounts = accountService.findAllAccountsByShop();
         return ResponseEntity.ok(new DataResponse(accounts, null));
     }
 

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Accounting.Accounts.Account;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 
 @Entity
 @Data
@@ -20,8 +21,13 @@ public class PartTran{
     private Character tranType;
     private Double amount;
     private String tranParticulars;
+
+    @Deprecated
     @ManyToOne(cascade = {CascadeType.DETACH})
     @JoinColumn()
     private Account account;
 
+    @ManyToOne
+    @JoinColumn()
+    private ShopAccount shopAccount;
 }

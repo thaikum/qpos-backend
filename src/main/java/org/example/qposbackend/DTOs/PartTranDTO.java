@@ -4,5 +4,5 @@ public record PartTranDTO(
         Character tranType,
         Double amount,
         String tranParticulars,
-        String accountNumber
+        Long shopAccountId
 ) {}

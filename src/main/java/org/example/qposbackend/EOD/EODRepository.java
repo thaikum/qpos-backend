@@ -11,9 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface EODRepository extends JpaRepository<EOD, Long> {
-    @Query("select EOD from EOD where shop =:shop order by date desc limit 1")
-    Optional<EOD> findLastEODAndShop(Shop shop);
+    @Query(nativeQuery = true, value = "select * from eod where shop_id = :shopId order by date desc limit 1")
+    Optional<EOD> findLastEODAndShop(Long shopId);
 
-    @Query("select EOD from EOD where shop =:shop and DATE(date) between DATE(:from) and DATE(:to)")
-    List<EOD> findAllByShopAndDateBetween(Shop shop, Date from, Date to);
+    @Query(nativeQuery = true, value = "select * from eod where shop_id = :shopId and DATE(date) between DATE(:from) and DATE(:to)")
+    List<EOD> findAllByShopAndDateBetween(Long shopId, Date from, Date to);
 }
