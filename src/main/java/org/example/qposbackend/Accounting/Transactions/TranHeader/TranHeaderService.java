@@ -27,7 +27,7 @@ public class TranHeaderService {
   private final ShopAccountRepository shopAccountRepository;
 
   public void saveAndVerifyTranHeader(TranHeader tranHeader) {
-    log.info("Before saving the transactions: " + tranHeader.toString() + " ");
+    log.info("Before saving the transactions: {} ", tranHeader.toString());
     tranHeaderRepository.save(tranHeader);
     log.info("Saved the transactions");
     verifyTransaction(tranHeader);
@@ -141,9 +141,13 @@ public class TranHeaderService {
 
   public List<TransactionDTO> fetchTransactionsByRange(DateRange range, String status) {
     List<TransactionDTO> transactionDTOList = new ArrayList<>();
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not logged in."));
     List<TranHeader> tranHeaders =
         tranHeaderRepository.findAllByStatusAndPostedDateBetween(
-            status, range.start(), range.end());
+            userShop.getShop().getId(), status, range.start(), range.end());
 
     for (TranHeader tranHeader : tranHeaders) {
       List<PartTran> partTrans = tranHeader.getPartTrans();
@@ -173,4 +177,5 @@ public class TranHeaderService {
     }
     return transactionDTOList;
   }
+
 }

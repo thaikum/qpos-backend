@@ -18,8 +18,10 @@ public class ShopAccount extends IntegrityAttributes {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     private Account account;
+    private String displayName;
+    private String displayDescription;
     @ManyToOne
     private Shop shop;
     private Double balance;

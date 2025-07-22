@@ -122,7 +122,7 @@ public class EODService {
       }
 
       double previousDayTotal = getPreviousDayTotal(endOfDayDTO, previousEod);
-      CurAssets allTransactions = getCashAndMobileDebits(eod.getDate());
+      CurAssets allTransactions = getCashAndMobileDebits(userShop.getShop().getId(), eod.getDate());
 
       double totalAmount = allTransactions.cashTotal + allTransactions.mobileTotal;
       System.out.println("Non sale are: " + totalAmount);
@@ -164,10 +164,10 @@ public class EODService {
     return previousEod.getBalanceBroughtDownCash() + previousEod.getBalanceBroughtDownMobile();
   }
 
-  private CurAssets getCashAndMobileDebits(LocalDate localDate) {
+  private CurAssets getCashAndMobileDebits(Long shopId, LocalDate localDate) {
     List<PartTran> cashTransactions =
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
-            localDate, LocalDate.now(), "CASH");
+            shopId, localDate, LocalDate.now(), "CASH");
 
     for (PartTran partTran : cashTransactions) {
       log.info("Part tran: {}", partTran);
@@ -176,7 +176,7 @@ public class EODService {
 
     List<PartTran> mobileMoneyTransactions =
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
-            localDate, LocalDate.now(), "MOBILE MONEY");
+            shopId, localDate, LocalDate.now(), "MOBILE MONEY");
 
     eodTrasactions.addAll(mobileMoneyTransactions);
 

@@ -18,6 +18,8 @@ public interface ShopAccountRepository extends JpaRepository<ShopAccount, Long> 
 
     Optional<ShopAccount> findByShopAndAccount_AccountName(Shop shop, String accountName);
 
+    Optional<ShopAccount> findByShop_idAndAccount_id(Long shopId, Long accountId);
+
     @Modifying
     @Query("update ShopAccount set balance = :amount where shop =:shop and account =:account")
     void updateBalance(Shop shop, Account account, Double amount);
@@ -25,4 +27,6 @@ public interface ShopAccountRepository extends JpaRepository<ShopAccount, Long> 
     List<ShopAccount> findAllByShop(Shop shop);
 
     boolean existsByShopAndAccount(Shop shop, Account account);
+
+    Integer countAllByAccount(Account account);
 }
