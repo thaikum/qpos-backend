@@ -2,6 +2,7 @@ package org.example.qposbackend.Stock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.StockDTO;
 import org.example.qposbackend.DTOs.StockItemDTO;
 import org.example.qposbackend.Exceptions.GenericExceptions;
@@ -12,6 +13,7 @@ import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 import org.example.qposbackend.InventoryItem.PriceDetails.PricingMode;
 import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Item.ItemRepository;
+import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.Stock.StockItem.StockItem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -33,7 +35,21 @@ public class StockService {
   @Value("${files.resources}")
   private String resources;
 
+  private final SpringSecurityAuditorAware auditorAware;
+
+  public List<Stock> getAllShopStock(){
+    UserShop userShop =
+            auditorAware
+                    .getCurrentAuditor()
+                    .orElseThrow(() -> new NoSuchElementException("User not found"));
+    return stockRepository.findAllByShop(userShop.getShop());
+  }
+
   public void addStock(StockDTO stockDTO) throws GenericExceptions {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
     try {
       Stock.StockBuilder builder = Stock.builder();
       builder.arrivalDate(stockDTO.arrivalDate());
@@ -68,6 +84,7 @@ public class StockService {
                     }
                   })
               .collect(Collectors.toList()));
+      builder.shop(userShop.getShop());
       Stock stock = builder.build();
 
       this.stockRepository.save(stock);

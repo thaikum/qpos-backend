@@ -147,4 +147,31 @@ public class ShopAccountService {
     shopAccountRepository.saveAll(shopAccounts);
     return true;
   }
+
+  public ShopAccountDto updateAccount(Long id, ShopAccountDto shopAccountDto) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+    ShopAccount oldShopAccount = shopAccountRepository.findById(id).orElseThrow(()->new NoSuchElementException("Shop account not found"));
+
+    if(!Objects.equals(oldShopAccount.getShop().getId(), userShop.getShop().getId())){
+      throw new IllegalStateException("Shop account does not belong to the current user");
+    }
+
+    if(!oldShopAccount.getAccount().getAccountName().equals(shopAccountDto.getAccountName()) && shopAccountDto.getAccountName() != null){
+      oldShopAccount.setDisplayName(shopAccountDto.getAccountName());
+    }
+    oldShopAccount.setDisplayDescription(ObjectUtils.firstNonNull(oldShopAccount.getDisplayDescription(), shopAccountDto.getDescription()));
+    oldShopAccount.setCurrency(ObjectUtils.firstNonNull(shopAccountDto.getCurrency(), oldShopAccount.getCurrency()));
+    oldShopAccount.setBalance(ObjectUtils.firstNonNull(shopAccountDto.getBalance(), oldShopAccount.getBalance()));
+    int count = shopAccountRepository.countAllByAccount(oldShopAccount.getAccount());
+    if(count == 1){
+      oldShopAccount.getAccount().setAccountType(ObjectUtils.firstNonNull(shopAccountDto.getAccountType(), oldShopAccount.getAccount().getAccountType()));
+      oldShopAccount.getAccount().setAccountName(ObjectUtils.firstNonNull(shopAccountDto.getAccountName(), oldShopAccount.getAccount().getAccountName()));
+    }
+    oldShopAccount = shopAccountRepository.save(oldShopAccount);
+    return Mapper.shopAccountToShopAccountDto(oldShopAccount);
+  }
 }

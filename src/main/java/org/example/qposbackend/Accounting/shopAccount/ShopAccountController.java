@@ -46,6 +46,16 @@ public class ShopAccountController {
     }
   }
 
+  @PutMapping("update/{id}")
+  @RequirePrivilege(PrivilegesEnum.UPDATE_ACCOUNT)
+  public ResponseEntity<?> updateShopAccount(@PathVariable("id") long id, @RequestBody ShopAccountDto shopAccount) {
+    try{
+      return ResponseEntity.ok(new DataResponse(shopAccountService.updateAccount(id, shopAccount), null));
+    }catch (Exception e){
+      return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+    }
+  }
+
   @PutMapping("/{id}/toggle-status")
   public ResponseEntity<?> toggleAccountStatus(@PathVariable Long id) {
     try {
