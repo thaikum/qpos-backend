@@ -11,9 +11,13 @@ import org.example.qposbackend.Authorization.User.Password.Password;
 import org.example.qposbackend.Authorization.User.dto.LoginResponse;
 import org.example.qposbackend.Authorization.User.dto.UserCredentials;
 import org.example.qposbackend.Authorization.User.dto.UserDto;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
+import org.example.qposbackend.Authorization.User.userShop.UserShopRepository;
 import org.example.qposbackend.DTOs.AuthRequest;
 import org.example.qposbackend.DTOs.PasswordChange;
 import org.example.qposbackend.Security.Jwt.JwtUtil;
+import org.example.qposbackend.shop.Shop;
+import org.example.qposbackend.shop.ShopRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,9 +37,24 @@ public class UserService {
   private final BCryptPasswordEncoder passwordEncoder;
   private final SystemRoleRepository systemRoleRepository;
   private final AuthenticationManager authenticationManager;
+  private final UserShopRepository userShopRepository;
+  private final ShopRepository shopRepository;
 
   public LoginResponse authenticateUser(AuthRequest authRequest) {
     try {
+      Shop shop;
+      Optional<Shop> optionalShop = shopRepository.findShopByCode(authRequest.shopCode());
+      UserShop userShop = null;
+
+      if (optionalShop.isEmpty()) {
+        userShop =
+            userShopRepository
+                .findDefaultUserShopByUser_email(authRequest.email())
+                .orElseThrow(() -> new RuntimeException("User not found with email and shop code"));
+        shop = userShop.getShop();
+      } else {
+        shop = optionalShop.get();
+      }
       Authentication authentication =
           authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(
@@ -44,7 +63,12 @@ public class UserService {
 
       User user = userRepository.findUserByEmail(authRequest.email()).orElseThrow();
       String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
-      return new LoginResponse(token, user);
+
+      if( userShop == null ){
+        userShop = userShopRepository.getByUserAndShop_Code(user, authRequest.shopCode());
+      }
+
+      return new LoginResponse(token, userShop);
     } catch (Exception ex) {
       throw new RuntimeException(ex.getMessage());
     }

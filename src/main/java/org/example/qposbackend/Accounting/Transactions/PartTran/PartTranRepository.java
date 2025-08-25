@@ -17,7 +17,7 @@ public interface PartTranRepository extends JpaRepository<PartTran, Long> {
                       FROM part_tran pt
                       JOIN tran_header th ON th.tran_id = pt.tran_header_id
                       JOIN shop_account sa on pt.shop_account_id = sa.id and shop_id = :shopId
-                      JOIN account a ON pt.account_id = a.id
+                      JOIN account a ON sa.account_id = a.id
                       WHERE th.status = 'VERIFIED'
                       AND DATE(th.verified_date) BETWEEN DATE(:from) AND DATE(:to)
                       AND a.account_name = :accountName

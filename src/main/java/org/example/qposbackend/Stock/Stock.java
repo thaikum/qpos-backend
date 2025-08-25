@@ -1,5 +1,6 @@
 package org.example.qposbackend.Stock;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,6 +38,8 @@ public class Stock {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn
     private List<StockItem> items;
-    @ManyToOne(cascade = CascadeType.ALL)
+
+    @JsonIgnore
+    @ManyToOne(cascade = CascadeType.MERGE)
     private Shop shop;
 }

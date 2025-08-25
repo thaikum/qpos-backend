@@ -1,5 +1,5 @@
 package org.example.qposbackend.Authorization.User.dto;
 
-import org.example.qposbackend.Authorization.User.User;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
 
-public record LoginResponse(String token, User user) {}
+public record LoginResponse(String token, UserShop user) {}

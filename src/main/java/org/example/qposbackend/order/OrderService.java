@@ -130,7 +130,9 @@ public class OrderService {
         changedPrices.add(pair.second);
         if (x == 0) {
           orderItem.setQuantity(pair.first);
+          orderItem.setBuyingPrice(pair.second.getBuyingPrice());
         } else {
+          log.info("Here, price is {} ", pair.second);
           OrderItem orderItem1 =
               OrderItem.builder()
                   .buyingPrice(pair.second.getBuyingPrice())
@@ -152,6 +154,8 @@ public class OrderService {
     addedOrderItems.addAll(saleOrder.getOrderItems());
     saleOrder.setOrderItems(addedOrderItems);
     saleOrder.setDate(saleDate);
+    log.info("Order: {}", saleOrder);
+
     TranHeader tranHeader = makeSale(saleOrder);
     tranHeaderService.saveAndVerifyTranHeader(tranHeader);
 

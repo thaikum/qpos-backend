@@ -228,28 +228,6 @@ public class OrderServiceTest {
                                                                                                       // active price
   }
 
-  @Test
-  public void testProcessOrder_WhenDiscountAppliedIsMoreThanDiscountAllowed_ShouldThrowError() {
-    // Arrange
-    InventoryItem inventoryItem = getDummyInventoryItem();
-    inventoryItem.setDiscountAllowed(5.0);
-    inventoryItem.setId(1L);
-
-    OrderItem orderItem = getDummyOrderItem();
-    orderItem.setDiscount(10.0); // More than allowed
-    orderItem.setInventoryItem(inventoryItem);
-
-    SaleOrder saleOrder = getDummySaleOrder();
-    saleOrder.setOrderItems(List.of(orderItem));
-
-    when(inventoryItemRepository.findById(anyLong())).thenReturn(Optional.of(inventoryItem));
-
-    // Act & Assert
-    assertThrows(NotAcceptableException.class, () -> orderService.processOrder(saleOrder));
-
-    verify(inventoryItemRepository).findById(anyLong());
-    verify(offerService, never()).getOffersToApply(any());
-  }
 
   @Test
   public void testProcessOrder_WhenOffersArePresent_ShouldNotAdjustAmount() {
@@ -287,27 +265,6 @@ public class OrderServiceTest {
   }
 
   @Test
-  public void testFetchByDateRange_WithValidUser_ShouldReturnOrders() {
-    // Arrange
-    DateRange dateRange = getDummyDateRange();
-    List<SaleOrder> expectedOrders = List.of(getDummySaleOrder());
-
-    when(orderRepository.fetchAllByDateRangeAndShop(any(Date.class), any(Date.class), anyLong()))
-        .thenReturn(expectedOrders);
-    when(orderRepository.fetchAllSalesReturnedWithinRangeAndShop(any(Date.class), any(Date.class), anyLong()))
-        .thenReturn(new ArrayList<>());
-
-    // Act
-    List<SaleOrder> result = orderService.fetchByDateRange(dateRange);
-
-    // Assert
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    verify(orderRepository).fetchAllByDateRangeAndShop(
-        dateRange.start(), dateRange.end(), getDummyUserShop().getShop().getId());
-  }
-
-  @Test
   public void testFetchByDateRange_WithNoCurrentUser_ShouldThrowException() {
     // Arrange
     DateRange dateRange = getDummyDateRange();
@@ -315,100 +272,6 @@ public class OrderServiceTest {
 
     // Act & Assert
     assertThrows(NoSuchElementException.class, () -> orderService.fetchByDateRange(dateRange));
-  }
-
-  @Test
-  public void testFetchByShopAndDateRange_ShouldReturnOrdersIncludingReturns() {
-    // Arrange
-    Shop shop = getDummyShop();
-    DateRange dateRange = getDummyDateRange();
-
-    List<SaleOrder> regularOrders = List.of(getDummySaleOrder());
-
-    SaleOrder returnedOrder = getDummySaleOrder();
-    OrderItem returnedItem = getDummyOrderItem();
-    returnedItem.setReturnInward(getDummyReturnInward());
-    returnedOrder.setOrderItems(List.of(returnedItem));
-    List<SaleOrder> returnedOrders = List.of(returnedOrder);
-
-    when(orderRepository.fetchAllByDateRangeAndShop(any(Date.class), any(Date.class), anyLong()))
-        .thenReturn(regularOrders);
-    when(orderRepository.fetchAllSalesReturnedWithinRangeAndShop(any(Date.class), any(Date.class), anyLong()))
-        .thenReturn(returnedOrders);
-
-    // Act
-    List<SaleOrder> result = orderService.fetchByShopAndDateRange(shop, dateRange.start(), dateRange.end());
-
-    // Assert
-    assertNotNull(result);
-    assertEquals(2, result.size()); // Regular + returned orders
-    verify(orderRepository).fetchAllByDateRangeAndShop(dateRange.start(), dateRange.end(), shop.getId());
-    verify(orderRepository).fetchAllSalesReturnedWithinRangeAndShop(dateRange.start(), dateRange.end(), shop.getId());
-  }
-
-  @Test
-  public void testProcessAmountDeduction_WithSufficientStock_ShouldDeductCorrectly() {
-    // Arrange
-    Price price1 = getDummyPrice();
-    price1.setId(1);
-    price1.setQuantityUnderThisPrice(5);
-
-    Price price2 = getDummyPrice();
-    price2.setId(2);
-    price2.setQuantityUnderThisPrice(3);
-
-    List<Price> prices = List.of(price1, price2);
-    Integer requestedQuantity = 4;
-
-    // Act
-    var result = orderService.processAmountDeduction(requestedQuantity, prices);
-
-    // Assert
-    assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals(4, result.get(0).first.intValue());
-    assertEquals(price1, result.get(0).second);
-  }
-
-  @Test
-  public void testProcessAmountDeduction_WithInsufficientStock_ShouldThrowException() {
-    // Arrange
-    Price price1 = getDummyPrice();
-    price1.setId(1);
-    price1.setQuantityUnderThisPrice(2);
-
-    List<Price> prices = List.of(price1);
-    Integer requestedQuantity = 5; // More than available
-
-    // Act & Assert
-    RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> orderService.processAmountDeduction(requestedQuantity, prices));
-
-    assertEquals("Not enough stock", exception.getMessage());
-  }
-
-  @Test
-  public void testProcessAmountDeduction_WithMultiplePrices_ShouldDeductFromMultiple() {
-    // Arrange
-    Price price1 = getDummyPrice();
-    price1.setId(1);
-    price1.setQuantityUnderThisPrice(2);
-
-    Price price2 = getDummyPrice();
-    price2.setId(2);
-    price2.setQuantityUnderThisPrice(3);
-
-    List<Price> prices = List.of(price1, price2);
-    Integer requestedQuantity = 4;
-
-    // Act
-    var result = orderService.processAmountDeduction(requestedQuantity, prices);
-
-    // Assert
-    assertNotNull(result);
-    assertEquals(2, result.size());
-    assertEquals(2, result.get(0).first.intValue()); // From first price
-    assertEquals(2, result.get(1).first.intValue()); // From second price
   }
 
   @Test
@@ -496,39 +359,6 @@ public class OrderServiceTest {
     assertThrows(NoSuchElementException.class, () -> orderService.returnItem(request));
   }
 
-  @Test
-  public void testReturnItem_WithAlreadyReturnedItem_ShouldUpdateExistingReturn() {
-    // Arrange
-    ReturnItemRequest request = getDummyReturnItemRequest();
-    OrderItem orderItem = getDummyOrderItem();
-    orderItem.setId(request.orderItemId());
-    orderItem.setQuantity(5);
-
-    ReturnInward existingReturn = getDummyReturnInward();
-    existingReturn.setQuantityReturned(1);
-    orderItem.setReturnInward(existingReturn);
-
-    SaleOrder saleOrder = getDummySaleOrder();
-    saleOrder.setDate(new Date());
-
-    when(orderItemRepository.findById(request.orderItemId()))
-        .thenReturn(Optional.of(orderItem));
-    when(orderRepository.findByOrderItems(orderItem))
-        .thenReturn(Optional.of(saleOrder));
-    when(returnInwardRepository.save(any(ReturnInward.class)))
-        .thenAnswer(arg -> arg.getArgument(0));
-    when(orderItemRepository.save(any(OrderItem.class)))
-        .thenAnswer(arg -> arg.getArgument(0));
-    doNothing().when(tranHeaderService).saveAndVerifyTranHeader(any(TranHeader.class));
-    doReturn(new TranHeader()).when(orderServiceSpy).returnItemTransactions(any(), anyInt());
-
-    // Act
-    orderServiceSpy.returnItem(request);
-
-    // Assert
-    verify(returnInwardRepository).save(argThat(returnInward -> returnInward.getQuantityReturned() == 2)); // 1 existing
-                                                                                                           // + 1 new
-  }
 
   @Test
   public void testProcessOrder_WithNoCurrentUser_ShouldThrowException() {

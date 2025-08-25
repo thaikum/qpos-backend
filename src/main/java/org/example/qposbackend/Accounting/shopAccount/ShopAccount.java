@@ -18,7 +18,7 @@ public class ShopAccount extends IntegrityAttributes {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.MERGE)
     private Account account;
     private String displayName;
     private String displayDescription;

@@ -49,6 +49,7 @@ dependencies {
     implementation group: 'net.sf.jasperreports', name: 'jasperreports', version: '6.21.3'
     implementation 'commons-codec:commons-codec:1.18.0'
     implementation 'org.springframework.boot:spring-boot-starter-graphql'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     testImplementation 'org.springframework.graphql:spring-graphql-test'
     testImplementation 'org.springframework:spring-webflux'
     compileOnly 'org.projectlombok:lombok'

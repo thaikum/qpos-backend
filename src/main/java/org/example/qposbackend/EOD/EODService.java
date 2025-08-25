@@ -84,9 +84,9 @@ public class EODService {
                 .plusDays(1));
     double totalCashSale = totalSales.cashTotal;
     double totalMobileSale = totalSales.mobileTotal;
+    log.info("Recovered debt is: {}", endOfDayDTO.totalRecoveredDebt());
     double totalReceivables =
-        endOfDayDTO.totalRecoveredDebt()
-            + endOfDayDTO.balanceBroughtDownCash()
+            endOfDayDTO.balanceBroughtDownCash()
             + endOfDayDTO.balanceBroughtDownMobile();
     User user =
         auditorAware
@@ -121,13 +121,15 @@ public class EODService {
         eod.setDate(previousEod.getDate().plusDays(1));
       }
 
+      log.info("Recovered debt is: {}", endOfDayDTO.totalRecoveredDebt());
+
       double previousDayTotal = getPreviousDayTotal(endOfDayDTO, previousEod);
       CurAssets allTransactions = getCashAndMobileDebits(userShop.getShop().getId(), eod.getDate());
 
       double totalAmount = allTransactions.cashTotal + allTransactions.mobileTotal;
       System.out.println("Non sale are: " + totalAmount);
 
-      double expectedTotal = previousDayTotal + totalAmount;
+      double expectedTotal = previousDayTotal + totalAmount + endOfDayDTO.totalRecoveredDebt();
 
       // update total debtors
       double previousDebt = Optional.ofNullable(previousEod.getTotalDebtors()).orElse(0D);
@@ -153,8 +155,6 @@ public class EODService {
 
   private double getPreviousDayTotal(EndOfDayDTO endOfDayDTO, EOD previousEod) {
     double previousDebt = Optional.ofNullable(previousEod.getTotalDebtors()).orElse(0D);
-    System.out.println(
-        "PreviousDebt: " + previousDebt + " Recovered Debt: " + endOfDayDTO.totalRecoveredDebt());
     if (previousDebt < endOfDayDTO.totalRecoveredDebt()) {
       throw new NotAcceptableException(
           "You cannot recover a debt that was not owed. There is no history any debt amounting to "
@@ -169,9 +169,6 @@ public class EODService {
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
             shopId, localDate, LocalDate.now(), "CASH");
 
-    for (PartTran partTran : cashTransactions) {
-      log.info("Part tran: {}", partTran);
-    }
     eodTrasactions.addAll(cashTransactions);
 
     List<PartTran> mobileMoneyTransactions =

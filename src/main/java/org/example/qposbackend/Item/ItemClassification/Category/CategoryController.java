@@ -14,7 +14,7 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<DataResponse> getCategory(){
-        return ResponseEntity.ok(new DataResponse(categoryRepository.findAll(), null));
+        return ResponseEntity.ok(new DataResponse(categoryService.getCategories(), null));
     }
     
     @PostMapping

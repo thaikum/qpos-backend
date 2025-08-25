@@ -24,7 +24,7 @@ jwt:
   expiration_time: 54000000
 
 files:
-  resources: C:/Users/fredt/OneDrive/Documents/projects/Pos/QposBackend/src/main/resources
+  resources: /home/thaiku/Documents/projects/Pos/QposBackend/src/main/resources/
 
 springdoc:
   swagger-ui:

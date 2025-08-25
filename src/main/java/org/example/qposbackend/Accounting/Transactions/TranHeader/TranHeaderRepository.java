@@ -10,7 +10,7 @@ public interface TranHeaderRepository extends JpaRepository<TranHeader, Long> {
   @Query(
       nativeQuery = true,
       value =
-          "select th.* from tran_header th join part_tran pt on th.tran_id = pt.tran_header_id join shop_account sc on pt.shop_account_id = sc.id and sc.shop_id =:shopId where status =:status and Date(posted_date) between DATE(:from) and DATE(:to) ")
+          "select distinct th.* from tran_header th join part_tran pt on th.tran_id = pt.tran_header_id join shop_account sc on pt.shop_account_id = sc.id and sc.shop_id =:shopId where th.status =:status and Date(posted_date) between DATE(:from) and DATE(:to) ")
   List<TranHeader> findAllByStatusAndPostedDateBetween(
       Long shopId, String status, Date from, Date to);
 

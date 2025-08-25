@@ -18,6 +18,7 @@ public class Shop {
   private Long id;
 
   private String name;
+  private String tagLine;
 
   @Setter(AccessLevel.NONE)
   @Column(unique = true)

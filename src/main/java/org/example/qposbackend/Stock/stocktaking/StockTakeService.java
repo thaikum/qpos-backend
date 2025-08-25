@@ -154,8 +154,14 @@ public class StockTakeService {
   }
 
   private List<StockTakeItem> createStockTakeList(StockTakeType stockTakeType, Set<Long> ids) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+
     List<InventoryItem> inventoryItems =
-        inventoryItemRepository.findInventoryItemByIsDeleted(false);
+        inventoryItemRepository.findInventoryItemByShop_IdAndIsDeleted(
+            userShop.getShop().getId(), false);
 
     if (stockTakeType == StockTakeType.RANDOM) {
       Long n = ids.stream().findFirst().orElse(0L);

@@ -40,4 +40,6 @@ public interface UserShopRepository extends JpaRepository<UserShop, Long> {
   
   // Method to find all shop associations for a user across all shops
   List<UserShop> findByUserAndIsDeletedFalse(User user);
+
+  UserShop getByUserAndShop_Code(User user, String shopCode);
 }

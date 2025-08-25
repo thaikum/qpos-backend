@@ -117,6 +117,7 @@ public class TranHeaderService {
 
       List<PartTran> partTrans = new ArrayList<>();
 
+
       for (PartTranDTO partTranDTO : tranHeaderDTO.partTrans()) {
         PartTran partTran =
             PartTran.builder()
@@ -151,6 +152,7 @@ public class TranHeaderService {
 
     for (TranHeader tranHeader : tranHeaders) {
       List<PartTran> partTrans = tranHeader.getPartTrans();
+      log.info("Part trans size is: {} ", partTrans.size());
       if (!Objects.isNull(partTrans) && !partTrans.isEmpty()) {
         for (PartTran partTran : partTrans) {
           TransactionDTO transactionDTO =

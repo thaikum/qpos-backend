@@ -34,25 +34,22 @@
 		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="New Data Adapter"/>
 		<parameter name="startDate" class="java.util.Date"/>
 		<parameter name="endDate" class="java.util.Date"/>
+		<parameter name="shopId" class="java.lang.Long"/>
 		<queryString language="SQL">
-			<![CDATA[SELECT
-    SUM(COALESCE(pt.amount, 0)) AS amount,
-    a.account_name,
-    a.account_type
-FROM
-    account a
-        LEFT JOIN part_tran pt ON a.id = pt.account_id
-        LEFT JOIN tran_header th ON th.tran_id = pt.tran_header_id
-WHERE
-    a.account_type = 'EXPENSE'
+			<![CDATA[SELECT SUM(CASE WHEN th.verified_date IS NOT NULL THEN COALESCE(pt.amount, 0) ELSE 0 END) AS amount,
+       a.account_name,
+       a.account_type
+
+FROM account a
+         left join shop_account sa on sa.account_id = a.id and sa.shop_id = $P{shopId}
+         left join part_tran pt on pt.shop_account_id = sa.id
+         left join tran_header th on th.tran_id = pt.tran_header_id
+    and DATE(th.verified_date) BETWEEN $P{startDate} AND $P{endDate}
+
+WHERE a.account_type = 'EXPENSE'
   AND a.account_name <> 'COST OF GOODS'
-  AND (
-    (DATE(th.verified_date) BETWEEN $P{startDate} AND $P{endDate})
-        OR th.verified_date IS NULL
-    )
-GROUP BY
-    a.account_name,
-    a.account_type;]]>
+GROUP BY a.account_name,
+         a.account_type;]]>
 		</queryString>
 		<field name="amount" class="java.lang.Double">
 			<property name="com.jaspersoft.studio.field.name" value="amount"/>
@@ -74,23 +71,31 @@ GROUP BY
 	</subDataset>
 	<parameter name="startDate" class="java.util.Date"/>
 	<parameter name="endDate" class="java.util.Date"/>
+	<parameter name="shopId" class="java.lang.Long"/>
 	<queryString>
-		<![CDATA[WITH aggregated AS (
-    SELECT
-        SUM(CASE WHEN a.account_name = 'SALES REVENUE' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS total_income,
-        SUM(CASE WHEN a.account_name = 'COST OF GOODS' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS total_cost,
-        SUM(CASE WHEN a.account_type = 'EXPENSE' THEN COALESCE(-pt.amount,0) WHEN a.account_type = 'INCOME' THEN COALESCE(pt.amount, 0) ELSE 0 END) AS net_profit
-    FROM part_tran pt
-             JOIN tran_header th ON th.tran_id = pt.tran_header_id
-             JOIN account a ON pt.account_id = a.id
-             where DATE(th.verified_date) between $P{startDate} and $P{endDate}
-)
-SELECT total_income, total_cost, net_profit
-FROM aggregated;]]>
+		<![CDATA[WITH aggregated AS (SELECT SUM(CASE
+                                   WHEN a.account_name = 'SALES REVENUE' THEN COALESCE(pt.amount, 0)
+                                   ELSE 0 END) AS total_income,
+                           SUM(CASE
+                                   WHEN a.account_name = 'COST OF GOODS' THEN COALESCE(pt.amount, 0)
+                                   ELSE 0 END) AS total_cost,
+                           SUM(CASE
+                                   WHEN a.account_type = 'EXPENSE' THEN COALESCE(-pt.amount, 0)
+                                   WHEN a.account_type = 'INCOME' THEN COALESCE(pt.amount, 0)
+                                   ELSE 0 END) AS net_profit
+                    FROM part_tran pt
+                             JOIN tran_header th ON th.tran_id = pt.tran_header_id
+                             join shop_account sa on sa.id = pt.shop_account_id
+                             join account a on a.id = sa.account_id
+                    where DATE(th.verified_date) between $P{startDate} and $P{endDate} and sa.shop_id = $P{shopId}),
+                    shop as (select name from shop where id = $P{shopId})
+SELECT ag.total_income, ag.total_cost, ag.net_profit, sh.name as shopName
+FROM aggregated ag, shop sh;]]>
 	</queryString>
 	<field name="total_cost" class="java.lang.Double"/>
 	<field name="total_income" class="java.lang.Double"/>
 	<field name="net_profit" class="java.lang.Double"/>
+	<field name="shopName" class="java.lang.String"/>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -110,7 +115,7 @@ FROM aggregated;]]>
 				</textElement>
 				<text><![CDATA[COMPANY NAME]]></text>
 			</staticText>
-			<staticText>
+			<textField>
 				<reportElement x="0" y="60" width="270" height="50" uuid="3d70faff-048d-4856-8678-932cedaf6b65"/>
 				<box leftPadding="5">
 					<topPen lineWidth="2.0"/>
@@ -121,8 +126,8 @@ FROM aggregated;]]>
 				<textElement verticalAlignment="Middle">
 					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
 				</textElement>
-				<text><![CDATA[PHOXAC TECHNOLOGIES]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$F{shopName}.toUpperCase()]]></textFieldExpression>
+			</textField>
 			<staticText>
 				<reportElement mode="Opaque" x="290" y="59" width="122" height="21" forecolor="#000000" backcolor="rgba(114, 160, 193, 0.47058824)" uuid="049bc508-d7b6-4adf-ba2e-a7cafa13f48c"/>
 				<box topPadding="0" leftPadding="3" bottomPadding="3" rightPadding="10">

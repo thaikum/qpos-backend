@@ -31,7 +31,7 @@ public class InventoryItemController {
     public ResponseEntity<DataResponse> getInventoryItems() {
         try {
             return ResponseEntity.ok(
-                    new DataResponse(inventoryRepository.findInventoryItemByIsDeleted(false), null));
+                    new DataResponse(inventoryItemService.getInventoryItems(), null));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new DataResponse(null, ex.getMessage()));
