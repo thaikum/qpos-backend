@@ -131,7 +131,7 @@ public class EODService {
 
       double expectedTotal = previousDayTotal + totalAmount + endOfDayDTO.totalRecoveredDebt();
 
-      // update total debtors
+      // update total debtor
       double previousDebt = Optional.ofNullable(previousEod.getTotalDebtors()).orElse(0D);
       eod.setTotalDebtors(previousDebt - endOfDayDTO.totalRecoveredDebt() + totalSales.debtTotal);
       double mpesaCost = totalMobileSale * 0.50 / 100 * 2;

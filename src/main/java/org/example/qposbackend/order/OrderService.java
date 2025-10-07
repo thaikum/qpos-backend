@@ -32,6 +32,8 @@ import org.example.qposbackend.order.orderItem.OrderItem;
 import org.example.qposbackend.order.orderItem.OrderItemRepository;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInward;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInwardRepository;
+import org.example.qposbackend.order.receipt.ReceiptData;
+import org.example.qposbackend.order.receipt.ReceiptItem;
 import org.example.qposbackend.shop.Shop;
 import org.springframework.stereotype.Service;
 
@@ -79,7 +81,7 @@ public class OrderService {
   }
 
   @Transactional
-  public void processOrder(SaleOrder saleOrder) {
+  public SaleOrder processOrder(SaleOrder saleOrder) {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
@@ -159,7 +161,7 @@ public class OrderService {
     TranHeader tranHeader = makeSale(saleOrder);
     tranHeaderService.saveAndVerifyTranHeader(tranHeader);
 
-    orderRepository.save(saleOrder);
+    return orderRepository.save(saleOrder);
   }
 
   public List<Pair<Integer, Price>> processAmountDeduction(Integer quantity, List<Price> prices) {
@@ -214,8 +216,7 @@ public class OrderService {
       orderItem.setReturnInward(returnInward);
 
       orderItemRepository.save(orderItem);
-      TranHeader tranHeader =
-          returnItemTransactions(orderItem, returnItemRequest.quantity());
+      TranHeader tranHeader = returnItemTransactions(orderItem, returnItemRequest.quantity());
       tranHeaderService.saveAndVerifyTranHeader(tranHeader);
     } else {
       ReturnInward returnInward = orderItem.getReturnInward();
@@ -460,7 +461,7 @@ public class OrderService {
   }
 
   //    @Bean
-  private void loadAllSalesInAccount(){
+  private void loadAllSalesInAccount() {
     Account salesAccount =
         accountRepository
             .findByAccountName("SALES REVENUE")
@@ -506,5 +507,36 @@ public class OrderService {
     } else {
       return new Date();
     }
+  }
+
+  public ReceiptData generateReceipt(Long orderId) {
+    SaleOrder order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new NoSuchElementException("Order not found"));
+
+    Shop shop = order.getShop();
+    return ReceiptData.builder()
+        .shopName(shop.getName())
+        .shopTagline(shop.getTagLine())
+        .shopPhone(shop.getPhone())
+        .receiptNo(order.getId().toString())
+        .orderNo(order.getId().toString())
+        .receiptItems(
+            order.getOrderItems().stream()
+                .map(
+                    oi ->
+                        ReceiptItem.builder()
+                            .itemName(oi.getInventoryItem().getItem().getName())
+                            .quantity(oi.getQuantity())
+                            .unitPrice(oi.getPrice() - oi.getDiscount())
+                            .total((oi.getPrice() - oi.getDiscount()) * oi.getQuantity())
+                            .build())
+                .toList())
+        .receiptTotal(
+            order.getOrderItems().stream()
+                .mapToDouble(oi -> (oi.getPrice() - oi.getDiscount()) * oi.getQuantity())
+                .sum())
+        .build();
   }
 }
