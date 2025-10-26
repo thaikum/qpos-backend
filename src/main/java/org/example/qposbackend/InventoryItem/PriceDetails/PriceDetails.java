@@ -58,7 +58,7 @@ public class PriceDetails {
     return price.orElse(this.prices.getLast()).getDiscountAllowed();
   }
 
-  public Double getTotalBuyingPrice(int quantity) {
+  public Double getTotalBuyingPrice(Double quantity) {
     if (quantity >= 0) {
       Price price = prices.getLast();
       return price.getBuyingPrice() * quantity;
@@ -76,7 +76,7 @@ public class PriceDetails {
     return totalBuyingPrice;
   }
 
-  public void adjustInventoryQuantity(int quantityChange) {
+  public void adjustInventoryQuantity(Double quantityChange) {
     if (quantityChange >= 0) {
       Price price = prices.getLast();
       price.setQuantityUnderThisPrice(price.getQuantityUnderThisPrice() + quantityChange);

@@ -23,6 +23,7 @@ public class CategoryService {
     if (request.mainCategoryId() != null) {
       category.setMainCategory(mainCategoryRepository.getReferenceById(request.mainCategoryId()));
     }
+    category.setCategoryName(request.categoryName());
     return categoryRepository.save(category);
   }
 

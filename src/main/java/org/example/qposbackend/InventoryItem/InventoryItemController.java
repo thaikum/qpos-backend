@@ -43,8 +43,8 @@ public class InventoryItemController {
             @RequestParam("inventoryEntry") String formData,
             @RequestPart("image") Optional<MultipartFile> image) {
         try {
-            inventoryItemService.createInventory(formData, image);
-            return ResponseEntity.ok(new DataResponse(null, "Inventory item created successfully"));
+            InventoryItem ii = inventoryItemService.createInventory(formData, image);
+            return ResponseEntity.ok(new DataResponse(ii, "Inventory item created successfully"));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
                     .body(new DataResponse(null, ex.getMessage()));

@@ -10,9 +10,9 @@ public class StockTakeItemDTO {
   private Long id;
   private String itemName;
   private Double itemPrice;
-  private Integer expectedQuantity;
-  private Integer actualQuantity;
-  private Integer quantityDifference;
+  private Double expectedQuantity;
+  private Double actualQuantity;
+  private Double quantityDifference;
   private Double amountDifference;
-  private Integer alreadyReconciled;
+  private Double alreadyReconciled;
 }

@@ -19,8 +19,8 @@ public class QuantityAdjustment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Integer initialQuantity;
-    private Integer adjustmentQuantity;
+    private Double initialQuantity;
+    private Double adjustmentQuantity;
     private String adjustmentReason;
     @ManyToOne
     private UserShop adjustedBy;

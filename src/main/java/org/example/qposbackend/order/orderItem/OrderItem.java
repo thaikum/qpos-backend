@@ -23,7 +23,7 @@ public class OrderItem {
     private Long id;
     @ManyToOne(cascade = CascadeType.ALL)
     private InventoryItem inventoryItem;
-    private int quantity;
+    private Double quantity;
     private double price;
     @JsonIgnore
     private double buyingPrice;

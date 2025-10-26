@@ -82,7 +82,7 @@ public class InventoryItemService {
   }
 
 
-  public void createInventory(String stringfiedInventoryDTO, Optional<MultipartFile> image)
+  public InventoryItem createInventory(String stringfiedInventoryDTO, Optional<MultipartFile> image)
       throws IOException {
     UserShop userShop =
             auditorAware
@@ -96,7 +96,7 @@ public class InventoryItemService {
 
     Item item = itemService.saveItem(inventoryItem.getItem(), image);
     inventoryItem.setItem(item);
-    inventoryItemRepository.save(inventoryItem);
+    return inventoryItemRepository.save(inventoryItem);
   }
 
   public void updateInventory(Long id, String formData, Optional<MultipartFile> image)
@@ -112,8 +112,6 @@ public class InventoryItemService {
         itemService.updateItem(inventoryItem.getItem().getId(), newVersion.getItem(), image);
 
     inventoryItem.setItem(item);
-    inventoryItem.setQuantity(
-        Optional.ofNullable(newVersion.getQuantity()).orElse(inventoryItem.getQuantity()));
     inventoryItem.setInventoryStatus(
         Optional.ofNullable(newVersion.getInventoryStatus())
             .orElse(inventoryItem.getInventoryStatus()));

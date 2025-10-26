@@ -106,6 +106,13 @@ public class OrderService {
                             + " is "
                             + inventoryItem.getPriceDetails().getDiscountAllowed());
                   }
+                  if (orderItem.getQuantity() < inventoryItem.getItem().getMinimumPerUnit()) {
+                    throw new NotAcceptableException(
+                        String.format(
+                            "The minimum quantity that can be sold for %s is %.2f",
+                            inventoryItem.getItem().getName(),
+                            inventoryItem.getItem().getMinimumPerUnit()));
+                  }
                   orderItem.setInventoryItem(inventoryItem);
                 }))
             .collect(Collectors.toCollection(ArrayList::new)));
@@ -113,6 +120,20 @@ public class OrderService {
     saleOrder = offerService.getOffersToApply(saleOrder).saleOrder(); // get the offers
     List<OrderItem> addedOrderItems = new ArrayList<>();
 
+    processPrices(saleOrder, addedOrderItems);
+
+    addedOrderItems.addAll(saleOrder.getOrderItems());
+    saleOrder.setOrderItems(addedOrderItems);
+    saleOrder.setDate(saleDate);
+    log.info("Order: {}", saleOrder);
+
+    TranHeader tranHeader = makeSale(saleOrder);
+    tranHeaderService.saveAndVerifyTranHeader(tranHeader);
+
+    return orderRepository.save(saleOrder);
+  }
+
+  private void processPrices(SaleOrder saleOrder, List<OrderItem> addedOrderItems) {
     for (OrderItem orderItem : saleOrder.getOrderItems()) {
       InventoryItem inventoryItem = orderItem.getInventoryItem();
       orderItem.setPrice(inventoryItem.getPriceDetails().getSellingPrice());
@@ -122,12 +143,12 @@ public class OrderService {
               .filter(v -> v.getQuantityUnderThisPrice() > 0)
               .toList();
 
-      List<Pair<Integer, Price>> quantityDeduction =
+      List<Pair<Double, Price>> quantityDeduction =
           processAmountDeduction(orderItem.getQuantity(), validPrices);
 
       List<Price> changedPrices = new ArrayList<>();
       for (int x = 0; x < quantityDeduction.size(); x++) {
-        Pair<Integer, Price> pair = quantityDeduction.get(x);
+        Pair<Double, Price> pair = quantityDeduction.get(x);
         pair.second.setQuantityUnderThisPrice(pair.second.getQuantityUnderThisPrice() - pair.first);
         changedPrices.add(pair.second);
         if (x == 0) {
@@ -152,24 +173,14 @@ public class OrderService {
       orderItem.setInventoryItem(inventoryItem);
       priceRepository.saveAll(changedPrices);
     }
-
-    addedOrderItems.addAll(saleOrder.getOrderItems());
-    saleOrder.setOrderItems(addedOrderItems);
-    saleOrder.setDate(saleDate);
-    log.info("Order: {}", saleOrder);
-
-    TranHeader tranHeader = makeSale(saleOrder);
-    tranHeaderService.saveAndVerifyTranHeader(tranHeader);
-
-    return orderRepository.save(saleOrder);
   }
 
-  public List<Pair<Integer, Price>> processAmountDeduction(Integer quantity, List<Price> prices) {
-    List<Pair<Integer, Price>> result = new ArrayList<>();
+  public List<Pair<Double, Price>> processAmountDeduction(Double quantity, List<Price> prices) {
+    List<Pair<Double, Price>> result = new ArrayList<>();
     List<Price> sortedPrices =
         prices.stream().sorted(Comparator.comparingInt(Price::getId)).toList();
     for (Price price : sortedPrices) {
-      int quantityDeducted = Math.min(quantity, price.getQuantityUnderThisPrice());
+      double quantityDeducted = Math.min(quantity, price.getQuantityUnderThisPrice());
       quantity -= quantityDeducted;
       result.add(new Pair<>(quantityDeducted, price));
       if (quantity == 0) return result;

@@ -37,11 +37,11 @@ public class StockService {
 
   private final SpringSecurityAuditorAware auditorAware;
 
-  public List<Stock> getAllShopStock(){
+  public List<Stock> getAllShopStock() {
     UserShop userShop =
-            auditorAware
-                    .getCurrentAuditor()
-                    .orElseThrow(() -> new NoSuchElementException("User not found"));
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
     return stockRepository.findAllByShop(userShop.getShop());
   }
 
@@ -66,11 +66,6 @@ public class StockService {
                       InventoryItem item = itemOptional.get();
 
                       setNewPricesAndQuantity(stockItemDTO, item);
-
-                      item.setQuantity(
-                          item.getQuantity()
-                              + (stockItemDTO.quantity() * stockItemDTO.packaging()));
-                      item.setBuyingPrice(stockItemDTO.buyingPrice() / stockItemDTO.packaging());
                       item = inventoryItemRepository.save(item);
                       return StockItem.builder()
                           .buyingPrice(stockItemDTO.buyingPrice())

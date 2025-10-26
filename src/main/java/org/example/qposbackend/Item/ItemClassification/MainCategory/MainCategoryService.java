@@ -5,6 +5,7 @@ import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -21,6 +22,14 @@ public class MainCategoryService {
                     .orElseThrow(() -> new NoSuchElementException("User not found"));
     mainCategory.setShop(userShop.getShop());
     return mainCategoryRepository.save(mainCategory);
+  }
+
+  public List<MainCategory> getMainCategories(){
+      UserShop userShop =
+              auditorAware
+                      .getCurrentAuditor()
+                      .orElseThrow(() -> new NoSuchElementException("User not found"));
+      return mainCategoryRepository.findAllByShop(userShop.getShop());
   }
  
 }

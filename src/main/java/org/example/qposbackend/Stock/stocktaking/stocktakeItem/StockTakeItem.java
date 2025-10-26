@@ -22,10 +22,10 @@ public class StockTakeItem {
   @JoinColumn(name = "inventory_item_id")
   private InventoryItem inventoryItem;
 
-  private Integer quantity = null;
+  private Double quantity = null;
 
   @Setter(AccessLevel.NONE)
-  private Integer expected; // this value should be set on object creation
+  private Double expected; // this value should be set on object creation
 
   @Getter(AccessLevel.NONE)
   @Transient
@@ -33,7 +33,7 @@ public class StockTakeItem {
 
   public Double getAmountDifference() {
     var amount =
-        (ObjectUtils.firstNonNull(this.quantity, 0) -  this.getExpected())
+        (ObjectUtils.firstNonNull(this.quantity, 0D) -  this.getExpected())
             * this.inventoryItem.getPriceDetails().getSellingPrice();
     log.info("amountDifference: {}", amount);
     return amount;
@@ -43,7 +43,7 @@ public class StockTakeItem {
   private void setExpectedOnCreation() {
     this.expected =
         inventoryItem.getPriceDetails().getPrices().stream()
-            .mapToInt(Price::getQuantityUnderThisPrice)
+            .mapToDouble(Price::getQuantityUnderThisPrice)
             .sum();
   }
 }

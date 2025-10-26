@@ -56,7 +56,7 @@ public class StockTakeService {
         stockTakeRepository
             .findById(stockTakeId)
             .orElseThrow(() -> new NoSuchElementException("StockTake not found"));
-    Map<Long, Integer> reconciled = reconciledItemQuantity(stockTake);
+    Map<Long, Double> reconciled = reconciledItemQuantity(stockTake);
 
     return StockTakeDTO.builder()
         .stockTakeId(stockTake.getId())
@@ -83,15 +83,13 @@ public class StockTakeService {
                 .toList())
         .stockTakeItems(
             stockTake.getStockTakeItems().stream()
-                .filter(
-                    stockTakeItem ->
-                        !Objects.equals(stockTakeItem.getQuantity(), stockTakeItem.getExpected()))
+                .filter(stockTakeItem -> stockTakeItem.getQuantity() != stockTakeItem.getExpected())
                 .map(
                     stockTakeItem -> {
-                      int reconciledQuantity = reconciled.getOrDefault(stockTakeItem.getId(), 0);
-                      int diff = stockTakeItem.getQuantity() - stockTakeItem.getExpected();
-                      int quantityDifference =
-                          diff > 0 ? diff - reconciledQuantity : diff + reconciledQuantity;
+                      double reconciledQuantity = reconciled.getOrDefault(stockTakeItem.getId(), 0D);
+                      double diff = stockTakeItem.getQuantity() - stockTakeItem.getExpected();
+                      double quantityDifference =
+                          diff > 0D ? diff - reconciledQuantity : diff + reconciledQuantity;
 
                       return StockTakeItemDTO.builder()
                           .quantityDifference(quantityDifference)
@@ -111,8 +109,8 @@ public class StockTakeService {
         .build();
   }
 
-  private Map<Long, Integer> reconciledItemQuantity(StockTake stockTake) {
-    Map<Long, Integer> reconciledItemQuantity = new HashMap<>();
+  private Map<Long, Double> reconciledItemQuantity(StockTake stockTake) {
+    Map<Long, Double> reconciledItemQuantity = new HashMap<>();
 
     for (var recons : stockTake.getStockTakeRecons()) {
       for (var recon : recons.getSingleItemRecons()) {

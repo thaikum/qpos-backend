@@ -59,7 +59,7 @@ public class StockTake extends IntegrityAttributes {
     boolean someNotReconciled = false;
     boolean containsDiscrepancies = false;
 
-    Map<Long, Integer> stockTakeReconciliation = new HashMap<>();
+    Map<Long, Double> stockTakeReconciliation = new HashMap<>();
 
     ObjectUtils.firstNonNull(stockTakeRecons, new ArrayList<StockTakeRecon>())
         .forEach(
@@ -93,7 +93,7 @@ public class StockTake extends IntegrityAttributes {
 
       if (!Objects.equals(
           stockTakeItem.getExpected(),
-          stockTakeReconciliation.getOrDefault(stockTakeItem.getId(), -33400))) {
+          stockTakeReconciliation.getOrDefault(stockTakeItem.getId(), -33400D))) {
         someNotReconciled = true;
       }
     }

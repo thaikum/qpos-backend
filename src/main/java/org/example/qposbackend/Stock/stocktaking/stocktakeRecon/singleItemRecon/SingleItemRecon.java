@@ -18,5 +18,5 @@ public class SingleItemRecon {
     private Long id;
     @ManyToOne
     private StockTakeItem  stockTakeItem;
-    private Integer quantity;
+    private Double quantity;
 }

@@ -21,7 +21,7 @@ public class Price {
   private double buyingPrice;
   private double sellingPrice;
   private double discountAllowed;
-  private int quantityUnderThisPrice;
+  private double quantityUnderThisPrice;
 
   @Enumerated(EnumType.STRING)
   private PriceStatus status;

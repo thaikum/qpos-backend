@@ -23,7 +23,6 @@ public class CategoryController {
             Category category = categoryService.addCategory(request);
             return ResponseEntity.ok(new DataResponse(category, null));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.badRequest().body(new DataResponse(null, e.getMessage()));
         }
     }

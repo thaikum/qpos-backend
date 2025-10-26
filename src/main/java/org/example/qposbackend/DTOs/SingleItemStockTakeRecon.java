@@ -7,5 +7,5 @@ import lombok.Data;
 @Builder
 public class SingleItemStockTakeRecon {
     private Long stockTakeItemId;
-    private Integer quantity;
+    private Double quantity;
 }
