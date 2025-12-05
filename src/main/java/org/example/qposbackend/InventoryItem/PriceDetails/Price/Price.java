@@ -26,6 +26,6 @@ public class Price {
   @Enumerated(EnumType.STRING)
   private PriceStatus status;
 
-  private Date creationTimestamp = new Date();
+  @Builder.Default private Date creationTimestamp = new Date();
   private Date stoppedOnTimestamp;
 }

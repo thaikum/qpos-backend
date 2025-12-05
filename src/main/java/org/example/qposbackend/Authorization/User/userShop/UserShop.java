@@ -34,13 +34,14 @@ public class UserShop {
   private SystemRole role;
 
   @Column(nullable = false)
+  @Builder.Default
   private boolean isDefault = false;
 
-  private Date createdAt = new Date();
+  @Builder.Default private Date createdAt = new Date();
   private Date updatedAt;
 
-  private boolean isDeleted = false;
-  private boolean isActive = true;
+  @Builder.Default private boolean isDeleted = false;
+  @Builder.Default private boolean isActive = true;
 
   @PreUpdate
   protected void onUpdate() {

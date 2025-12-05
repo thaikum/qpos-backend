@@ -31,6 +31,7 @@ public class InventoryItem {
   @Setter(AccessLevel.NONE)
   private Integer quantity;
 
+  @Builder.Default
   private Integer reorderLevel = 0;
 
   @Enumerated(EnumType.STRING)
@@ -55,6 +56,7 @@ public class InventoryItem {
   @Transient
   @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
+  @Builder.Default
   private Double discountAllowed = 0.0;
 
   @Builder.Default

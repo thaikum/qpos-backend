@@ -26,11 +26,11 @@ public class SaleOrder extends IntegrityAttributes {
   private List<OrderItem> orderItems;
 
   private double discount;
-  private Date date = new Date();
+  @Builder.Default private Date date = new Date();
   private String modeOfPayment;
-  private Double amountInCash = 0D;
-  private Double amountInMpesa = 0D;
-  private Double amountInCredit = 0D;
+  @Builder.Default private Double amountInCash = 0D;
+  @Builder.Default private Double amountInMpesa = 0D;
+  @Builder.Default private Double amountInCredit = 0D;
 
   @ManyToOne
   @JoinColumn(name = "shop_id")

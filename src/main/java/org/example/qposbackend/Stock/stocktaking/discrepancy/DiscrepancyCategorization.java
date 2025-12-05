@@ -21,6 +21,7 @@ public class DiscrepancyCategorization {
     @ManyToOne
     private StockTakeReconTypeConfig reconTypeConfig;
     private double quantity;
+    @Builder.Default
     private boolean deductEmployee = false;
     @ManyToOne
     private UserShop employeeToDeduct;

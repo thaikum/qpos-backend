@@ -25,7 +25,7 @@ public class StockTakeItem {
   @JoinColumn(name = "inventory_item_id")
   private InventoryItem inventoryItem;
 
-  private Double quantity = null;
+  @Builder.Default private Double quantity = null;
 
   @Setter(AccessLevel.NONE)
   private Double expected; // this value should be set on object creation
@@ -39,7 +39,7 @@ public class StockTakeItem {
 
   public Double getAmountDifference() {
     var amount =
-        (ObjectUtils.firstNonNull(this.quantity, 0D) -  this.getExpected())
+        (ObjectUtils.firstNonNull(this.quantity, 0D) - this.getExpected())
             * this.inventoryItem.getPriceDetails().getSellingPrice();
     log.info("amountDifference: {}", amount);
     return amount;

@@ -165,7 +165,7 @@ public class DummyData {
   public static OrderItem getDummyOrderItem(String itemName) {
     return OrderItem.builder()
         .inventoryItem(getDummyInventoryItem(itemName))
-        .quantity(3)
+        .quantity(3D)
         .price(150.0)
         .buyingPrice(100.0)
         .discount(5.0)
