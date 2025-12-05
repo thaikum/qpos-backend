@@ -27,13 +27,11 @@ public class SystemRole implements Cloneable{
         try {
             SystemRole clone = (SystemRole) super.clone();
 
-            // Deep copy the name (primitive String)
             clone.setName(this.name);
 
-            // Deep copy the privileges Set (assuming Privilege is not cloneable)
             Set<Privilege> copiedPrivileges = new HashSet<>();
             for (Privilege privilege : this.privileges) {
-                copiedPrivileges.add(new Privilege(privilege.getPrivilege())); // Create new Privilege with name
+                copiedPrivileges.add(new Privilege(privilege.getPrivilege()));
             }
             clone.setPrivileges(copiedPrivileges);
 

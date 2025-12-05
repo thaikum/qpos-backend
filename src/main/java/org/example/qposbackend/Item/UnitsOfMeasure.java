@@ -10,7 +10,8 @@ public enum UnitsOfMeasure {
     KILOGRAMS("Killograms", "Amount in killograms"),
     GRAMS("Gram", "Amount in grams"),
     METERS("Meters", "Number of meters"),
-    INCHES("Inches", "Number of inches");
+    INCHES("Inches", "Number of inches"),
+    LITRES("Litres", "Number of litres");
 
     private final String displayName;
     private final String description;

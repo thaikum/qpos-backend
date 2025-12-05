@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.DTOs.DataResponse;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.DTOs.OfferDTO;
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.SaleOrder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

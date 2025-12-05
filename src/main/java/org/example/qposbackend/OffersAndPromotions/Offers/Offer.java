@@ -3,6 +3,7 @@ package org.example.qposbackend.OffersAndPromotions.Offers;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.Item.Item;
@@ -21,6 +22,7 @@ import java.util.Set;
 
 @Entity
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class Offer extends IntegrityAttributes {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

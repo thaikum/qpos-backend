@@ -38,7 +38,8 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
 
             """)
     List<Offer> findAllActiveOffersByItemsIdsAndCategoriesIdsAndMainCategoriesIdsAndSubCategoriesIds(Iterable<Long> itemIds, Iterable<Long> categoryIds, Iterable<Long> mainCategoryIds, Iterable<Long> subCategoryIds);
-
+    @Query(nativeQuery = true, value = "select * from offer")
+    List <Offer> findAllActiveFullyFreeOffersNotInItemsIdsAndNotInCategoriesIdsAndNotInSubCategoriesIds(Iterable<Long> itemIds, Iterable<Long> categoryIds, Iterable<Long> mainCategoryIds, Iterable<Long> subCategoryIds);
     @Query(nativeQuery = true, value = """
             SELECT o.*
             FROM offer o

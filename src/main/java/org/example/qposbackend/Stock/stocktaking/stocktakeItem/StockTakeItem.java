@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
+import org.example.qposbackend.Stock.stocktaking.discrepancy.DiscrepancyCategorization;
+
+import java.util.List;
 
 @Slf4j
 @Entity
@@ -22,18 +25,21 @@ public class StockTakeItem {
   @JoinColumn(name = "inventory_item_id")
   private InventoryItem inventoryItem;
 
-  private Integer quantity = null;
+  @Builder.Default private Double quantity = null;
 
   @Setter(AccessLevel.NONE)
-  private Integer expected; // this value should be set on object creation
+  private Double expected; // this value should be set on object creation
 
   @Getter(AccessLevel.NONE)
   @Transient
   private Double amountDifference;
 
+  @OneToMany(cascade = CascadeType.ALL)
+  private List<DiscrepancyCategorization> discrepancyCategorization;
+
   public Double getAmountDifference() {
     var amount =
-        (ObjectUtils.firstNonNull(this.quantity, 0) -  this.getExpected())
+        (ObjectUtils.firstNonNull(this.quantity, 0D) - this.getExpected())
             * this.inventoryItem.getPriceDetails().getSellingPrice();
     log.info("amountDifference: {}", amount);
     return amount;
@@ -43,7 +49,7 @@ public class StockTakeItem {
   private void setExpectedOnCreation() {
     this.expected =
         inventoryItem.getPriceDetails().getPrices().stream()
-            .mapToInt(Price::getQuantityUnderThisPrice)
+            .mapToDouble(Price::getQuantityUnderThisPrice)
             .sum();
   }
 }

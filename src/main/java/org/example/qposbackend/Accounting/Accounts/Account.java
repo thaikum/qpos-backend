@@ -3,6 +3,7 @@ package org.example.qposbackend.Accounting.Accounts;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
+import org.example.qposbackend.shop.Shop;
 
 import java.util.Date;
 
@@ -33,4 +34,6 @@ public class Account extends IntegrityAttributes {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+    @ManyToOne
+    private Shop shop;
 }

@@ -1,9 +1,10 @@
 package org.example.qposbackend.Suppliers;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
+@Data
 @Entity
-
 public class Supplier {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

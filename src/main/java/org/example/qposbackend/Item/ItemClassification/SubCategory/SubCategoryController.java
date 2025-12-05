@@ -18,7 +18,7 @@ public class SubCategoryController {
 
     @GetMapping
     public ResponseEntity<DataResponse> getSubCategories(){
-        return ResponseEntity.ok(new DataResponse(subCategoryRepository.findAll(), null));
+        return ResponseEntity.ok(new DataResponse(subCategoryService.getSubCategories(), null));
     }
     
     @PostMapping

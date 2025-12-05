@@ -33,15 +33,14 @@
 	<subDataset name="StatementDataset" uuid="0866c553-024f-4f85-95d2-cd6a2de7e502">
 		<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="New Data Adapter"/>
-		<parameter name="accountNumber" class="java.lang.String"/>
+		<parameter name="accountId" class="java.lang.Long"/>
 		<parameter name="startDate" class="java.util.Date"/>
 		<parameter name="endDate" class="java.util.Date"/>
 		<queryString language="SQL">
 			<![CDATA[WITH BalanceBroughtForward AS (SELECT SUM(IF(pt.tran_type = 'C', -pt.amount, pt.amount)) AS balance
                                FROM part_tran pt
                                         JOIN tran_header th ON pt.tran_header_id = th.tran_id
-                                        JOIN account a ON pt.account_id = a.id
-                               WHERE a.account_number = $P{accountNumber}
+                               WHERE pt.shop_account_id = $P{accountId}
                                  AND th.verified_date < $P{startDate}),
      FilteredTransactions AS (SELECT pt.tran_particulars,
                                      th.verified_date,
@@ -49,11 +48,11 @@
                                      IF(pt.tran_type = 'D', pt.amount, 0) AS debit
                               FROM part_tran pt
                                        JOIN tran_header th ON pt.tran_header_id = th.tran_id
-                                       JOIN account a ON pt.account_id = a.id
-                              WHERE a.account_number = $P{accountNumber}
+
+                              WHERE pt.shop_account_id = $P{accountId}
                                 AND th.verified_date BETWEEN $P{startDate} AND $P{endDate})
-select 'BALANCE BROUGHT FORWARD' as tran_particulars,
-       $P{startDate}                  as verified_date,
+select 'BALANCE BROUGHT FORWARD'        as tran_particulars,
+       $P{startDate}                       as verified_date,
        ABS(if(balance < 0, balance, 0)) as credit,
        ABS(if(balance > 0, balance, 0)) as debit
 FROM BalanceBroughtForward
@@ -83,41 +82,53 @@ ORDER BY verified_date;]]>
 			<initialValueExpression><![CDATA[0]]></initialValueExpression>
 		</variable>
 	</subDataset>
-	<parameter name="accountNumber" class="java.lang.String"/>
+	<parameter name="accountId" class="java.lang.Long"/>
 	<parameter name="endDate" class="java.util.Date"/>
 	<parameter name="startDate" class="java.util.Date"/>
 	<queryString language="SQL">
-		<![CDATA[WITH BalanceBroughtForward AS (SELECT SUM(IF(pt.tran_type = 'C', -pt.amount, pt.amount)) AS balance
-                               FROM part_tran pt
-                                        JOIN tran_header th ON pt.tran_header_id = th.tran_id
-                                        JOIN account a ON pt.account_id = a.id
-                               WHERE a.account_number = $P{accountNumber}
-                                 AND th.verified_date < $P{startDate}),
-     credits_debit AS (SELECT sum(IF(pt.tran_type = 'C', pt.amount, 0)) AS credit,
-                              sum(IF(pt.tran_type = 'D', pt.amount, 0)) AS debit,
-                              a.account_name
-                               FROM part_tran pt
-                                        JOIN tran_header th ON pt.tran_header_id = th.tran_id
-                                        JOIN account a ON pt.account_id = a.id
-                               WHERE a.account_number = $P{accountNumber}
-                                 AND th.verified_date between $P{startDate} and $P{endDate})
-select
-    bb.balance as previous_balance,
-    cd.credit as credits,
-    cd.debit as debits,
-    cd.account_name
-    from BalanceBroughtForward bb, credits_debit cd]]>
+		<![CDATA[
+WITH BalanceBroughtForward AS (
+    SELECT COALESCE(SUM(IF(pt.tran_type = 'C', -pt.amount, pt.amount)), 0) AS balance
+    FROM part_tran pt
+             JOIN tran_header th ON pt.tran_header_id = th.tran_id
+    WHERE pt.shop_account_id = $P{accountId}
+      AND th.verified_date < $P{startDate}
+),
+
+     credits_debit AS (
+         SELECT COALESCE(SUM(IF(pt.tran_type = 'C', pt.amount, 0)), 0) AS credit,
+                COALESCE(SUM(IF(pt.tran_type = 'D', pt.amount, 0)), 0) AS debit,
+                a.account_name
+         FROM part_tran pt
+                  JOIN tran_header th ON pt.tran_header_id = th.tran_id
+                  JOIN shop_account sa ON pt.shop_account_id = sa.id
+                  JOIN account a ON sa.account_id = a.id
+         WHERE pt.shop_account_id = $P{accountId}
+           AND th.verified_date BETWEEN $P{startDate} AND $P{endDate}
+     ),
+     shop_details AS (select name, tag_line from shop where id = (select shop_id from shop_account where id = $P{accountId}))
+
+SELECT bb.balance as previous_balance,
+       cd.credit  as credits,
+       cd.debit   as debits,
+       cd.account_name,
+       sd.name as shop_name,
+       sd.tag_line as shop_tag_line
+FROM BalanceBroughtForward bb
+         CROSS JOIN credits_debit cd CROSS JOIN shop_details sd;]]>
 	</queryString>
 	<field name="credits" class="java.lang.Double"/>
 	<field name="debits" class="java.lang.Double"/>
 	<field name="previous_balance" class="java.lang.Double"/>
 	<field name="account_name" class="java.lang.String"/>
+	<field name="shop_name" class="java.lang.String"/>
+	<field name="shop_tag_line" class="java.lang.String"/>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<title>
 		<band height="58">
-			<staticText>
+			<textField>
 				<reportElement x="0" y="30" width="260" height="20" forecolor="#004269" uuid="90537840-c17f-410b-a957-b02c45e70b78">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				</reportElement>
@@ -125,15 +136,15 @@ select
 				<textElement verticalAlignment="Top">
 					<font size="11" isItalic="true" pdfFontName="Helvetica-Oblique"/>
 				</textElement>
-				<text><![CDATA[Where electronics and accessories collide!]]></text>
-			</staticText>
-			<staticText>
+				<textFieldExpression><![CDATA[$F{shop_tag_line}]]></textFieldExpression>
+			</textField>
+			<textField>
 				<reportElement x="0" y="0" width="260" height="30" uuid="f51df6d3-60d8-4e29-a282-6f4e32170770"/>
 				<textElement verticalAlignment="Bottom">
 					<font size="18"/>
 				</textElement>
-				<text><![CDATA[PHOXAC TECHNOLOGIES]]></text>
-			</staticText>
+				<textFieldExpression><![CDATA[$F{shop_name}.toUpperCase()]]></textFieldExpression>
+			</textField>
 			<staticText>
 				<reportElement x="280" y="0" width="270" height="30" forecolor="#004269" uuid="9c0f569f-6786-47c5-9851-46505902daf9"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
@@ -210,7 +221,7 @@ select
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 				<textElement textAlignment="Right" verticalAlignment="Bottom"/>
-				<textFieldExpression><![CDATA[$P{accountNumber}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$P{accountId}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="420" y="80" width="130" height="20" uuid="c324960c-0f76-4648-93c5-66d3f778939c">
@@ -328,8 +339,8 @@ select
 				</reportElement>
 				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
 					<datasetRun subDataset="StatementDataset" uuid="76449fb5-ce99-4766-878e-1b4cdd8201ee">
-						<datasetParameter name="accountNumber">
-							<datasetParameterExpression><![CDATA[$P{accountNumber}]]></datasetParameterExpression>
+						<datasetParameter name="accountId">
+							<datasetParameterExpression><![CDATA[$P{accountId}]]></datasetParameterExpression>
 						</datasetParameter>
 						<datasetParameter name="endDate">
 							<datasetParameterExpression><![CDATA[$P{endDate}]]></datasetParameterExpression>
@@ -653,7 +664,7 @@ select
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isItalic="true" pdfFontName="Helvetica"/>
 				</textElement>
-				<text><![CDATA[PHOXAC TECHNOLOGIES]]></text>
+				<text><![CDATA[Stoq-it — Because You’ve Got Better Things to Count.]]></text>
 			</staticText>
 		</band>
 	</pageFooter>

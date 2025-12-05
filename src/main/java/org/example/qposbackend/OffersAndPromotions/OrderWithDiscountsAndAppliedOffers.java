@@ -1,6 +1,6 @@
 package org.example.qposbackend.OffersAndPromotions;
 
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.SaleOrder;
 
 import java.util.List;
 

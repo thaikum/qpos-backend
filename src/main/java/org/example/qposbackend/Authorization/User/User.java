@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Authorization.Roles.SystemRole;
 import org.example.qposbackend.Authorization.User.Password.Password;
+import org.example.qposbackend.Authorization.User.UserActivity.UserActivity;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
+import org.example.qposbackend.shop.Shop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,28 +21,42 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "system_user")
-public class User{
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(length = 20)
-    private String firstName;
-    @Column(unique = true, nullable = false)
-    private String email;
-    @Column(length = 20)
-    private String lastName;
-    private IdType idType;
-    @Column(length = 50)
-    private String idNumber;
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @JoinColumn
-    @JsonIgnore
-    private List<Password> passwords;
-    @Builder.Default
-    private Boolean enabled = true;
-    @Builder.Default
-    private Boolean isLoggedIn = false;
-    @ManyToOne
-    @JoinColumn
-    private SystemRole role;
+public class User {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @Column(length = 20)
+  private String firstName;
+
+  @Column(unique = true, nullable = false)
+  private String email;
+
+  @Column(length = 20)
+  private String lastName;
+
+  @Column(length = 20)
+  private String phoneNumber;
+
+  private IdType idType;
+
+  @Column(length = 50)
+  private String idNumber;
+
+  @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @JoinColumn
+  @JsonIgnore
+  private List<Password> passwords;
+
+  @Builder.Default private Boolean enabled = true;
+  @Builder.Default private Boolean isLoggedIn = false;
+
+  @ManyToOne
+  @JoinColumn
+  @Deprecated(forRemoval = true, since = "V2-Multishop System roles will shift to usershop instead")
+  private SystemRole role;
+
+  public String getActivePassword(){
+    return this.passwords.getLast().getPassword();
+  }
 }

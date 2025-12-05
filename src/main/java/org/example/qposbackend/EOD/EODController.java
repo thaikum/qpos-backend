@@ -21,8 +21,14 @@ public class EODController {
         return ResponseEntity.ok(new MessageResponse("Successfully performed end of day"));
     }
 
+    @PostMapping("empty-eod")
+    private ResponseEntity<MessageResponse> emptyEod() {
+        eoDService.performEmptyEOD();
+        return ResponseEntity.ok(new MessageResponse("Successfully performed end of day"));
+    }
+
     @PostMapping("/fetch-by-range")
     public ResponseEntity<DataResponse> fetchByRange(@RequestBody DateRange dateRange) {
-        return ResponseEntity.ok(new DataResponse(eoDRepository.findAllByDateBetween(dateRange.start(), dateRange.end()), null));
+        return ResponseEntity.ok(new DataResponse(eoDService.fetchByRange(dateRange), null));
     }
 }

@@ -37,6 +37,7 @@ public enum PrivilegesEnum {
   // ======================== USERS =================================
   VIEW_USERS("VIEW USERS", "USERS"),
   ADD_USER("ADD USER", "USERS"),
+  UPDATE_USER("UPDATE USER", "USERS"),
 
   // ======================== ACCOUNTING ============================
   CREATE_ACCOUNT("CREATE ACCOUNT", "ACCOUNTS"),
