@@ -14,6 +14,7 @@ import org.example.qposbackend.DTOs.PartTranDTO;
 import org.example.qposbackend.DTOs.TranHeaderDTO;
 import org.example.qposbackend.DTOs.TransactionDTO;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +44,7 @@ public class TranHeaderService {
     List<Long> ids = new ArrayList<>();
 
     transactionProcessor(tranHeader, shopAccountMap, ids);
-    tranHeaderRepository.verifyStatusByIds(userShop.getUser().getId(), ids);
+    tranHeaderRepository.verifyStatusByIds(userShop.getId(), ids);
     for (Map.Entry<Long, Double> entry : shopAccountMap.entrySet()) {
       shopAccountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
     }
@@ -87,16 +88,23 @@ public class TranHeaderService {
       transactionProcessor(tranHeader, shopAccountMap, ids);
     }
     log.info("Now saving");
-    tranHeaderRepository.verifyStatusByIds(userShop.getUser().getId(), ids);
+    tranHeaderRepository.verifyStatusByIds(userShop.getId(), ids);
     for (Map.Entry<Long, Double> entry : shopAccountMap.entrySet()) {
       shopAccountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
     }
     log.info("Done saving");
   }
 
-  public void declineTranHeaders(List<Long> ids) {}
+  public void declineTranHeaders(List<Long> ids) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
+    tranHeaderRepository.rejectTransactionById(userShop.getId(), ids);
+  }
 
   public void createAndVerifyTransaction(TranHeaderDTO tranHeaderDTO) {
+
     TranHeader tranHeader = createTransactions(tranHeaderDTO);
     verifyTransaction(tranHeader);
   }
@@ -112,11 +120,10 @@ public class TranHeaderService {
           TranHeader.builder()
               .postedBy(userShop)
               .postedDate(ObjectUtils.firstNonNull(tranHeaderDTO.postedDate(), new Date()))
-              .status(TransactionStatus.UNVERIFIED.name())
+              .status(TransactionStatus.UNVERIFIED)
               .build();
 
       List<PartTran> partTrans = new ArrayList<>();
-
 
       for (PartTranDTO partTranDTO : tranHeaderDTO.partTrans()) {
         PartTran partTran =
@@ -132,7 +139,7 @@ public class TranHeaderService {
         partTrans.add(partTran);
       }
       tranHeader.setPartTrans(partTrans);
-      tranHeader.setStatus(TransactionStatus.UNVERIFIED.name());
+      tranHeader.setStatus(TransactionStatus.UNVERIFIED);
 
       return tranHeaderRepository.save(tranHeader);
     } catch (Exception e) {
@@ -153,14 +160,14 @@ public class TranHeaderService {
     for (TranHeader tranHeader : tranHeaders) {
       List<PartTran> partTrans = tranHeader.getPartTrans();
       log.info("Part trans size is: {} ", partTrans.size());
-      if (!Objects.isNull(partTrans) && !partTrans.isEmpty()) {
+      if (!partTrans.isEmpty()) {
         for (PartTran partTran : partTrans) {
           TransactionDTO transactionDTO =
               TransactionDTO.builder()
                   .tranId(tranHeader.getTranId())
                   .tranDate(tranHeader.getCreationTimestamp())
                   .tranAmount(partTran.getAmount())
-                  .tranStatus(tranHeader.getStatus())
+                  .tranStatus(tranHeader.getStatus().name())
                   .updatedBy(
                       Objects.isNull(tranHeader.getLastModifiedBy())
                           ? null
@@ -168,7 +175,7 @@ public class TranHeaderService {
                   .accountName(
                       Objects.isNull(partTran.getShopAccount())
                           ? null
-                          : partTran.getShopAccount().getAccount().getAccountName())
+                          : partTran.getShopAccount().getAccountName())
                   .tranType(partTran.getTranType())
                   .tranParticulars(partTran.getTranParticulars())
                   .build();
@@ -179,5 +186,4 @@ public class TranHeaderService {
     }
     return transactionDTOList;
   }
-
 }

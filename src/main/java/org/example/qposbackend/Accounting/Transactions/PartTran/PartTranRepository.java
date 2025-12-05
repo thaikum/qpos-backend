@@ -19,7 +19,7 @@ public interface PartTranRepository extends JpaRepository<PartTran, Long> {
                       JOIN shop_account sa on pt.shop_account_id = sa.id and shop_id = :shopId
                       JOIN account a ON sa.account_id = a.id
                       WHERE th.status = 'VERIFIED'
-                      AND DATE(th.verified_date) BETWEEN DATE(:from) AND DATE(:to)
+                      AND DATE(th.posted_date) BETWEEN DATE(:from) AND DATE(:to)
                       AND a.account_name = :accountName
                   )
                   SELECT vpt.*

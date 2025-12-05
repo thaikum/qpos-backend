@@ -20,11 +20,16 @@ public class ShopAccount extends IntegrityAttributes {
 
     @ManyToOne(cascade = CascadeType.MERGE)
     private Account account;
-    private String displayName;
-    private String displayDescription;
-    @ManyToOne
+    private String accountName;
+    private String accountNumber;
+    @Column(nullable = false, length = 20)
+    private String accountType;
+    private String description;
+    @ManyToOne(cascade = CascadeType.MERGE)
     private Shop shop;
     private Double balance;
     private String currency;
     private Boolean isActive;
+    @Builder.Default
+    private Boolean isEditable = true;
 }

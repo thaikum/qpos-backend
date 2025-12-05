@@ -2,6 +2,7 @@ package org.example.qposbackend.DTOs;
 
 import lombok.Builder;
 import lombok.Data;
+import org.example.qposbackend.Stock.stocktaking.data.SingleItemStockTakeRecon;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconType;
 
 import java.util.List;

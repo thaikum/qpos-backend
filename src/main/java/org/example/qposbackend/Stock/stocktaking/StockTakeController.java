@@ -6,6 +6,11 @@ import org.example.qposbackend.Authorization.User.userShop.UserShopRepository;
 import org.example.qposbackend.DTOs.*;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.example.qposbackend.Stock.stocktaking.data.StockTakeDTO;
+import org.example.qposbackend.Stock.stocktaking.data.StockTakeItemDTO;
+import org.example.qposbackend.Stock.stocktaking.data.StockTakeItemReconDto;
+import org.example.qposbackend.Stock.stocktaking.data.StockTakeRecon;
+import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 import org.example.qposbackend.Utils.EnumUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -94,14 +99,16 @@ public class StockTakeController {
   }
 
   @PostMapping("reconcile")
-  public ResponseEntity<DataResponse> reconcileStockTake(
-      @RequestBody StockTakeReconRequest stockTakeReconRequest) {
+  public ResponseEntity<MessageResponse> reconcileStockTake(
+      @RequestBody StockTakeRecon stockTakeRecon) {
     try {
-      StockTakeDTO stockTakeDTO = stockTakeService.reconcileStockTake(stockTakeReconRequest);
-      return ResponseEntity.ok(new DataResponse(stockTakeDTO, null));
+      stockTakeService.reconcileStockTake(stockTakeRecon);
+      return ResponseEntity.ok(new MessageResponse("Reconciliation successful"));
     } catch (Exception e) {
       e.printStackTrace();
       throw new GenericRuntimeException(e.getMessage());
     }
   }
+
+
 }

@@ -1,22 +1,15 @@
 package org.example.qposbackend.ControllerAdvice;
 
-import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
+import java.nio.file.AccessDeniedException;
+import java.util.NoSuchElementException;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
-import org.hibernate.TransientPropertyValueException;
-import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import java.nio.file.AccessDeniedException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.NoSuchElementException;
 
 @ControllerAdvice
 public class ResponseExceptionHandler {
@@ -30,18 +23,10 @@ public class ResponseExceptionHandler {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.FORBIDDEN);
   }
 
-  @ExceptionHandler({
-    TransientPropertyValueException.class,
-    NullPointerException.class,
-    SQLSyntaxErrorException.class,
-    HttpMessageNotReadableException.class,
-    GenericRuntimeException.class,
-    GenericExceptions.class
-  })
+  @ExceptionHandler({GenericRuntimeException.class, GenericExceptions.class})
   public ResponseEntity<MessageResponse> handleServerError(Exception ex) {
     ex.printStackTrace();
-    return new ResponseEntity<>(
-        new MessageResponse(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
   }
 
   @ExceptionHandler(NotAcceptableException.class)
@@ -49,8 +34,12 @@ public class ResponseExceptionHandler {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
   }
 
-  @ExceptionHandler({TypeMismatchException.class, InvalidDefinitionException.class})
-  public ResponseEntity<MessageResponse> handleNotAcceptableException(Exception ex) {
-    return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<MessageResponse> handleAllOtherExceptions(Exception ex) {
+    ex.printStackTrace();
+    return new ResponseEntity<>(
+        new MessageResponse(
+            "An unexpected error occurred. Please contact your system administrator."),
+        HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }

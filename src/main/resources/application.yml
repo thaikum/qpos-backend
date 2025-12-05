@@ -2,9 +2,9 @@ spring:
   application:
     name: QposBackend
   datasource:
-    url: jdbc:mariadb://localhost:3306/qpos?createDatabaseIfNotExist=true
-    username: root
-    password: fredsystem
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://localhost:3306/qpos?createDatabaseIfNotExist=true}
+    username: ${SPRING_DATABASE_USERNAME:root}
+    password: ${SPRING_DATABASE_PASSWORD:fredsystem}
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:

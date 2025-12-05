@@ -21,6 +21,8 @@ import org.example.qposbackend.shop.ShopRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
+import javax.lang.model.type.NullType;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,13 +48,20 @@ public class ShopAccountService {
           String.format(
               "%02d%03d",
               AccountTypes.valueOf(shopAccountDto.getAccountType()).ordinal(), accounts + 1);
-      account =
-          Account.builder()
+
+      ShopAccount shopAccount =
+          ShopAccount.builder()
+              .shop(userShop.getShop())
               .accountName(shopAccountDto.getAccountName())
               .accountNumber(accountNumber)
               .accountType(shopAccountDto.getAccountType())
+              .balance(0.0)
+              .currency(shopAccountDto.getCurrency())
+              .isActive(true)
               .description(shopAccountDto.getDescription())
               .build();
+
+      shopAccountRepository.save(shopAccount);
     } else {
       account =
           accountRepository
@@ -62,33 +71,32 @@ public class ShopAccountService {
         throw new IllegalStateException("Shop account already exists");
       }
     }
-
-    ShopAccount shopAccount =
-        ShopAccount.builder()
-            .shop(userShop.getShop())
-            .account(account)
-            .balance(0.0)
-            .currency(shopAccountDto.getCurrency())
-            .isActive(true)
-            .displayDescription(shopAccountDto.getDescription())
-            .displayName(shopAccountDto.getAccountName())
-            .build();
-
-    shopAccountRepository.save(shopAccount);
   }
 
-  public List<ShopAccountDto> getShopAccounts() {
+  @Bean
+  private NullType mapAccountToShopAccount(ShopAccountRepository shopAccountRepository){
+      List<ShopAccount> shopAccounts = shopAccountRepository.findAllByAccountNameIsNull();
+      for (ShopAccount shopAccount : shopAccounts) {
+          if(shopAccount.getAccount() != null){
+            shopAccount.setAccountNumber(shopAccount.getAccount().getAccountNumber());
+            shopAccount.setAccountName(shopAccount.getAccount().getAccountName());
+            shopAccount.setAccountType(shopAccount.getAccount().getAccountType());
+            shopAccount.setDescription(shopAccount.getAccount().getDescription());
+          }
+      }
+      shopAccountRepository.saveAll(shopAccounts);
+      return null;
+  }
+
+  public List<ShopAccount> getShopAccounts() {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
     List<ShopAccount> accounts = shopAccountRepository.findAllByShop(userShop.getShop());
     log.info("Found {} accounts for shop {}", accounts.size(), userShop.getShop().getCode());
-    return accounts.stream()
-        .map((Mapper::shopAccountToShopAccountDto))
-        .toList();
+    return accounts;
   }
-
 
   @Transactional
   public void updateBalance(Shop shop, Account account, Double amount) {
@@ -101,10 +109,11 @@ public class ShopAccountService {
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-    ShopAccount shopAccount = shopAccountRepository
-        .findById(id)
-        .filter(sa -> sa.getShop().equals(userShop.getShop()))
-        .orElseThrow(() -> new NoSuchElementException("Shop account not found"));
+    ShopAccount shopAccount =
+        shopAccountRepository
+            .findById(id)
+            .filter(sa -> sa.getShop().equals(userShop.getShop()))
+            .orElseThrow(() -> new NoSuchElementException("Shop account not found"));
     Integer count = shopAccountRepository.countAllByAccount(shopAccount.getAccount());
 
     ShopAccountDto dto = Mapper.shopAccountToShopAccountDto(shopAccount);
@@ -114,9 +123,9 @@ public class ShopAccountService {
 
   @Transactional
   public void toggleAccountStatus(Long id) {
-//    ShopAccount shopAccount = getShopAccount(id);
-//    shopAccount.setIsActive(!shopAccount.getIsActive());
-//    shopAccountRepository.save(shopAccount);
+    //    ShopAccount shopAccount = getShopAccount(id);
+    //    shopAccount.setIsActive(!shopAccount.getIsActive());
+    //    shopAccountRepository.save(shopAccount);
   }
 
   @Bean
@@ -154,22 +163,38 @@ public class ShopAccountService {
             .getCurrentAuditor()
             .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-    ShopAccount oldShopAccount = shopAccountRepository.findById(id).orElseThrow(()->new NoSuchElementException("Shop account not found"));
+    ShopAccount oldShopAccount =
+        shopAccountRepository
+            .findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Shop account not found"));
 
-    if(!Objects.equals(oldShopAccount.getShop().getId(), userShop.getShop().getId())){
+    if (!Objects.equals(oldShopAccount.getShop().getId(), userShop.getShop().getId())) {
       throw new IllegalStateException("Shop account does not belong to the current user");
     }
 
-    if(!oldShopAccount.getAccount().getAccountName().equals(shopAccountDto.getAccountName()) && shopAccountDto.getAccountName() != null){
-      oldShopAccount.setDisplayName(shopAccountDto.getAccountName());
+    if (!oldShopAccount.getAccount().getAccountName().equals(shopAccountDto.getAccountName())
+        && shopAccountDto.getAccountName() != null) {
+      oldShopAccount.setAccountName(shopAccountDto.getAccountName());
     }
-    oldShopAccount.setDisplayDescription(ObjectUtils.firstNonNull(oldShopAccount.getDisplayDescription(), shopAccountDto.getDescription()));
-    oldShopAccount.setCurrency(ObjectUtils.firstNonNull(shopAccountDto.getCurrency(), oldShopAccount.getCurrency()));
-    oldShopAccount.setBalance(ObjectUtils.firstNonNull(shopAccountDto.getBalance(), oldShopAccount.getBalance()));
+    oldShopAccount.setDescription(
+        ObjectUtils.firstNonNull(
+            oldShopAccount.getDescription(), shopAccountDto.getDescription()));
+    oldShopAccount.setCurrency(
+        ObjectUtils.firstNonNull(shopAccountDto.getCurrency(), oldShopAccount.getCurrency()));
+    oldShopAccount.setBalance(
+        ObjectUtils.firstNonNull(shopAccountDto.getBalance(), oldShopAccount.getBalance()));
     int count = shopAccountRepository.countAllByAccount(oldShopAccount.getAccount());
-    if(count == 1){
-      oldShopAccount.getAccount().setAccountType(ObjectUtils.firstNonNull(shopAccountDto.getAccountType(), oldShopAccount.getAccount().getAccountType()));
-      oldShopAccount.getAccount().setAccountName(ObjectUtils.firstNonNull(shopAccountDto.getAccountName(), oldShopAccount.getAccount().getAccountName()));
+    if (count == 1) {
+      oldShopAccount
+          .getAccount()
+          .setAccountType(
+              ObjectUtils.firstNonNull(
+                  shopAccountDto.getAccountType(), oldShopAccount.getAccount().getAccountType()));
+      oldShopAccount
+          .getAccount()
+          .setAccountName(
+              ObjectUtils.firstNonNull(
+                  shopAccountDto.getAccountName(), oldShopAccount.getAccount().getAccountName()));
     }
     oldShopAccount = shopAccountRepository.save(oldShopAccount);
     return Mapper.shopAccountToShopAccountDto(oldShopAccount);

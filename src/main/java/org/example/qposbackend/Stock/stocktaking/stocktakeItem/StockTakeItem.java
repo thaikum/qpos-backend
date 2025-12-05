@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
+import org.example.qposbackend.Stock.stocktaking.discrepancy.DiscrepancyCategorization;
+
+import java.util.List;
 
 @Slf4j
 @Entity
@@ -30,6 +33,9 @@ public class StockTakeItem {
   @Getter(AccessLevel.NONE)
   @Transient
   private Double amountDifference;
+
+  @OneToMany(cascade = CascadeType.ALL)
+  private List<DiscrepancyCategorization> discrepancyCategorization;
 
   public Double getAmountDifference() {
     var amount =

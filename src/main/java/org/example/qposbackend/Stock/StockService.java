@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.StockDTO;
-import org.example.qposbackend.DTOs.StockItemDTO;
+import org.example.qposbackend.Stock.stocktaking.data.StockItemDTO;
 import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;

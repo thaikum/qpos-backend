@@ -29,4 +29,6 @@ public interface ShopAccountRepository extends JpaRepository<ShopAccount, Long> 
     boolean existsByShopAndAccount(Shop shop, Account account);
 
     Integer countAllByAccount(Account account);
+
+    List<ShopAccount> findAllByAccountNameIsNull();
 }

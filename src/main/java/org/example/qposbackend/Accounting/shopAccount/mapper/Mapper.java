@@ -10,7 +10,8 @@ public class Mapper {
         dto.setId(shopAccount.getId());
         dto.setAccountName(
                 ObjectUtils.firstNonNull(
-                        shopAccount.getDisplayName(), shopAccount.getAccount().getAccountName()));
+                        shopAccount.getAccountName(), shopAccount.getAccount().getAccountName()));
+
         dto.setAccountNumber(shopAccount.getAccount().getAccountNumber());
         dto.setBalance(shopAccount.getBalance());
         dto.setCurrency(shopAccount.getCurrency());
@@ -18,7 +19,7 @@ public class Mapper {
         dto.setAccountType(shopAccount.getAccount().getAccountType());
         dto.setDescription(
                 ObjectUtils.firstNonNull(
-                        shopAccount.getDisplayDescription(),
+                        shopAccount.getDescription(),
                         shopAccount.getAccount().getDescription()));
         return dto;
     }

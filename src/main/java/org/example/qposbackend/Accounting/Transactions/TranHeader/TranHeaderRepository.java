@@ -1,6 +1,8 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Date;
@@ -14,9 +16,15 @@ public interface TranHeaderRepository extends JpaRepository<TranHeader, Long> {
   List<TranHeader> findAllByStatusAndPostedDateBetween(
       Long shopId, String status, Date from, Date to);
 
+  @Transactional
+  @Modifying
   @Query(
       nativeQuery = true,
       value =
           "update tran_header set status = 'VERIFIED', verified_by_id= :userId, verified_date = current_date() where tran_id in :ids")
   void verifyStatusByIds(Long userId, List<Long> ids);
+
+  @Modifying
+    @Query(nativeQuery = true, value = "update tran_header set status = 'DECLINED', rejected_by_id= :userShopId, rejected_date = current_date() where tran_id in :ids")
+  void rejectTransactionById(Long userShopId, List<Long> ids);
 }

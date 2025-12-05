@@ -19,35 +19,31 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderController {
-    private final OrderService orderService;
+  private final OrderService orderService;
 
-    @PostMapping
-    public ResponseEntity<?> createOrder(@RequestBody SaleOrder order) {
-        try {
-            SaleOrder saleOrder = orderService.processOrder(order);
-            ReceiptData receiptData = orderService.generateReceipt(saleOrder.getId());
-      return ResponseEntity.status(HttpStatus.CREATED)
-          .body(new DataResponse(receiptData, null));
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new MessageResponse(ex.getMessage()));
-        }
-    }
+  @PostMapping
+  public ResponseEntity<?> createOrder(@RequestBody SaleOrder order) {
+    SaleOrder saleOrder = orderService.processOrder(order);
+    ReceiptData receiptData = orderService.generateReceipt(saleOrder.getId());
+    return ResponseEntity.status(HttpStatus.CREATED).body(new DataResponse(receiptData, null));
+  }
 
-    @PostMapping("get-by-range")
-    public ResponseEntity<DataResponse> fetchByDateRange(@RequestBody DateRange dateRange) {
-        return ResponseEntity.ok(new DataResponse(orderService.fetchByDateRange(dateRange), null));
-    }
+  @PostMapping("get-by-range")
+  public ResponseEntity<DataResponse> fetchByDateRange(@RequestBody DateRange dateRange) {
+    return ResponseEntity.ok(new DataResponse(orderService.fetchByDateRange(dateRange), null));
+  }
 
-    @PostMapping("return-item")
-    public ResponseEntity<MessageResponse> returnItem(@RequestBody ReturnItemRequest returnItemRequest) {
-        orderService.returnItem(returnItemRequest);
-        return ResponseEntity.ok(new MessageResponse("Item returned successfully"));
-    }
+  @PostMapping("return-item")
+  public ResponseEntity<MessageResponse> returnItem(
+      @RequestBody ReturnItemRequest returnItemRequest) {
+    orderService.returnItem(returnItemRequest);
+    return ResponseEntity.ok(new MessageResponse("Item returned successfully"));
+  }
 
-    @PostMapping("generate-receipt/{orderId}")
-    @RequirePrivilege(PrivilegesEnum.MAKE_SALE)
-    public ResponseEntity<DataResponse> generateReceipt(@PathVariable("orderId") Long orderId) {
-        ReceiptData receiptData = orderService.generateReceipt(orderId);
-        return ResponseEntity.ok(new DataResponse(receiptData, null));
-    }
+  @PostMapping("generate-receipt/{orderId}")
+  @RequirePrivilege(PrivilegesEnum.MAKE_SALE)
+  public ResponseEntity<DataResponse> generateReceipt(@PathVariable("orderId") Long orderId) {
+    ReceiptData receiptData = orderService.generateReceipt(orderId);
+    return ResponseEntity.ok(new DataResponse(receiptData, null));
+  }
 }

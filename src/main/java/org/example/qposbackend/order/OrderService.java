@@ -21,6 +21,7 @@ import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
 import org.example.qposbackend.EOD.EOD;
 import org.example.qposbackend.EOD.EODRepository;
+import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
@@ -96,7 +97,7 @@ public class OrderService {
                   InventoryItem inventoryItem =
                       inventoryItemRepository
                           .findById(orderItem.getInventoryItem().getId())
-                          .orElseThrow(() -> new RuntimeException("No inventory found."));
+                          .orElseThrow(() -> new GenericRuntimeException("No inventory found."));
 
                   if (orderItem.getDiscount()
                       > inventoryItem.getPriceDetails().getDiscountAllowed()) {
@@ -186,7 +187,7 @@ public class OrderService {
       if (quantity == 0) return result;
     }
     log.info("Current quantity is: {}", quantity);
-    throw new RuntimeException("Not enough stock");
+    throw new GenericRuntimeException("Not enough stock");
   }
 
   @Transactional
@@ -265,11 +266,10 @@ public class OrderService {
 
     TranHeader tranHeader =
         TranHeader.builder()
-            .status(TransactionStatus.POSTED.name())
             .postedDate(getSaleDate(userShop.getShop()))
             .postedBy(userShop)
-            .verifiedBy(userShop.getUser())
-            .status(TransactionStatus.UNVERIFIED.name())
+            .verifiedBy(userShop)
+            .status(TransactionStatus.VERIFIED)
             .build();
     List<PartTran> partTranList = new ArrayList<>();
     int partTranNumber = 1;
@@ -334,11 +334,10 @@ public class OrderService {
 
     TranHeader tranHeader =
         TranHeader.builder()
-            .status(TransactionStatus.POSTED.name())
             .postedDate(getSaleDate(userShop.getShop()))
             .postedBy(userShop)
-            .verifiedBy(userShop.getUser())
-            .status(TransactionStatus.UNVERIFIED.name())
+            .verifiedBy(userShop)
+            .status(TransactionStatus.VERIFIED)
             .build();
 
     ShopAccount cashAccount =

@@ -1,5 +1,7 @@
 package org.example.qposbackend.DTOs;
 
+import org.example.qposbackend.Stock.stocktaking.data.StockItemDTO;
+
 import java.util.Date;
 import java.util.List;
 
