@@ -30,6 +30,18 @@ jobs:
 
     - name: Build with Gradle Wrapper
       run: ./gradlew bootJar
+    
+    - name: Test SSH Connection
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STOQIT_SERVER }}
+        username: ${{ secrets.STOQIT_USER }}
+        password: ${{ secrets.STOQIT_PASSWORD }}
+        script: |
+          echo "SSH connection successful"
+          whoami
+          pwd
+
     - name: Copy JAR to VPS
       uses: appleboy/scp-action@master
       with:
