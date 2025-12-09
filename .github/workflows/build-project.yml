@@ -37,6 +37,7 @@ jobs:
         host: ${{ secrets.STOQIT_SERVER }}
         username: ${{ secrets.STOQIT_USER }}
         password: ${{ secrets.STOQIT_PASSWORD }}
+        timeout: 300s
         script: |
           echo "SSH connection successful"
           whoami
