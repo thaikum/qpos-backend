@@ -15,8 +15,8 @@ import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategory;
 import org.example.qposbackend.Item.ItemClassification.SubCategory.SubCategoryRepository;
 import org.example.qposbackend.OffersAndPromotions.*;
 import org.example.qposbackend.OffersAndPromotions.BundledConditions.BundledCondition;
-import org.example.qposbackend.Order.OrderItem.OrderItem;
-import org.example.qposbackend.Order.SaleOrder;
+import org.example.qposbackend.order.orderItem.OrderItem;
+import org.example.qposbackend.order.SaleOrder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -88,15 +88,9 @@ public class OfferService {
       InventoryItem inventoryItem =
           inventoryItemRepository.getReferenceById(orderItem.getInventoryItem().getId());
       itemIds.add(orderItem.getInventoryItem().getId());
-      categoryIds.add(
-          inventoryItem.getItem().getSubCategoryId().getCategory().getId());
+      categoryIds.add(inventoryItem.getItem().getSubCategoryId().getCategory().getId());
       mainCategoryIds.add(
-          inventoryItem
-              .getItem()
-              .getSubCategoryId()
-              .getCategory()
-              .getMainCategory()
-              .getId());
+          inventoryItem.getItem().getSubCategoryId().getCategory().getMainCategory().getId());
       subCategoryIds.add(inventoryItem.getItem().getSubCategoryId().getId());
     }
 
@@ -217,7 +211,7 @@ public class OfferService {
                     .discount(inventoryItem.getSellingPrice())
                     .inventoryItem(inventoryItem)
                     .price(inventoryItem.getSellingPrice())
-                    .quantity(1)
+                    .quantity(1D)
                     .offersApplied(List.of(offer))
                     .build();
 
@@ -325,7 +319,7 @@ public class OfferService {
         return new AppliedOffersAndTotalDiscount(offer, totalDiscount, orderItemsMeetingCriteria);
       }
       case QUANTITY -> {
-        int totalItems = orderItems.stream().mapToInt(OrderItem::getQuantity).sum();
+        double totalItems = orderItems.stream().mapToDouble(OrderItem::getQuantity).sum();
         if (totalItems > offer.getMinQuantity()) {
           double totalDiscount = calculateDiscount(offer, orderItemsMeetingCriteria);
           return new AppliedOffersAndTotalDiscount(offer, totalDiscount, orderItemsMeetingCriteria);
@@ -369,10 +363,9 @@ public class OfferService {
         }
       } else if (!Objects.isNull(bundledCondition.getMinQuantity())
           && bundledCondition.getMinQuantity() != 0) {
-        int totalItems = orderItemMap.get(key).stream().mapToInt(OrderItem::getQuantity).sum();
-        if (totalItems < bundledCondition.getMinQuantity()) {
-          return true;
-        }
+        double totalItems =
+            orderItemMap.get(key).stream().mapToDouble(OrderItem::getQuantity).sum();
+          return totalItems < bundledCondition.getMinQuantity();
       } else {
         log.error("bundledCondition.getMinAmount() or BundledCondition.getMinQuantity() is false");
         return true;

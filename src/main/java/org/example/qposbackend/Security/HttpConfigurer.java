@@ -3,49 +3,38 @@ package org.example.qposbackend.Security;
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Authorization.Privileges.PrivilegesEnum;
 import org.example.qposbackend.Authorization.SystemUserDetails.UserDetailsServiceImpl;
+import org.example.qposbackend.Authorization.authentication.StoqItAuthenticationProvider;
 import org.example.qposbackend.Security.Jwt.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
-@DependsOn("corsConfig")
+@DependsOn({"corsConfig", "StoqItAuthenticationProvider"})
 public class HttpConfigurer {
   private final JwtAuthFilter authFilter;
+  private final StoqItAuthenticationProvider stoqItAuthenticationProvider;
 
   @Bean
   public UserDetailsService userDetailsService() {
     return new UserDetailsServiceImpl();
-  }
-
-  @Bean
-  public BCryptPasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
-  }
-
-  @Bean
-  public DaoAuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-    authProvider.setUserDetailsService(userDetailsService());
-    authProvider.setPasswordEncoder(passwordEncoder());
-
-    return authProvider;
   }
 
   @Bean
@@ -58,8 +47,7 @@ public class HttpConfigurer {
                     // OPTIONS
                     .requestMatchers(HttpMethod.OPTIONS)
                     .permitAll()
-                    //  ===================== SALES
-                    //  ====================================
+                    //  ============== SALES ==========================
                     .requestMatchers(HttpMethod.POST, "order")
                     .hasAuthority(PrivilegesEnum.MAKE_SALE.name())
                     .requestMatchers(HttpMethod.POST, "order/get-by-range")
@@ -75,8 +63,7 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "eod/fetch-by-range")
                     .hasAnyAuthority(PrivilegesEnum.CLOSE_DAY_BOOKS.name())
 
-                    //  ====================== INVENTORY
-                    //  ================================
+                    //  ====================== INVENTORY =======================
                     .requestMatchers(
                         HttpMethod.GET,
                         "inventory",
@@ -115,6 +102,10 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.GET, "users")
                     .hasAuthority(PrivilegesEnum.VIEW_USERS.name())
                     .requestMatchers(HttpMethod.POST, "users/change-password")
+                    .authenticated()
+
+                    //  =========================== USER SHOPS =======================
+                    .requestMatchers("user-shops/**")
                     .authenticated()
 
                     // ============================= RESOURCES =========================
@@ -216,9 +207,9 @@ public class HttpConfigurer {
                     .requestMatchers("/users/login")
                     .permitAll()
                     .anyRequest()
-                    .denyAll())
+                    .authenticated())
         .formLogin(AbstractHttpConfigurer::disable)
-        .authenticationProvider(authenticationProvider())
+        .authenticationProvider(stoqItAuthenticationProvider)
         .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
         .exceptionHandling(
             httpSecurityExceptionHandlingConfigurer ->

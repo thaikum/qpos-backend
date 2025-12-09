@@ -11,8 +11,7 @@ import java.util.Optional;
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, Long> {
     Optional<InventoryItem> findInventoryItemByItem_Id(Long id);
 
-    List<InventoryItem> findInventoryItemByIsDeleted(Boolean isDeleted);
-
+    List<InventoryItem> findInventoryItemByShop_IdAndIsDeleted(Long shopId, Boolean isDeleted);
 
     @Query(nativeQuery = true, value = "update inventory_item set is_deleted = true where id=:id")
     void markDelete(Long id);

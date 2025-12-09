@@ -2,7 +2,7 @@ package org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconT
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.example.qposbackend.Accounting.Accounts.Account;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.stockTakeReconTypeConfigValidator.ValidStockOverageCause;
 
 @Entity
@@ -27,15 +27,15 @@ public class StockTakeReconTypeConfig {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn
-  private Account penaltyAccount;
+  private ShopAccount penaltyAccount;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn
-  private Account expenseAccount;
+  private ShopAccount expenseAccount;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn
-  private Account balancingAccount;
+  private ShopAccount balancingAccount;
 
   private Boolean isDeleted = false;
 }

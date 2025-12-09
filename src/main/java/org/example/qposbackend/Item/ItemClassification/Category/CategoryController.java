@@ -14,7 +14,7 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<DataResponse> getCategory(){
-        return ResponseEntity.ok(new DataResponse(categoryRepository.findAll(), null));
+        return ResponseEntity.ok(new DataResponse(categoryService.getCategories(), null));
     }
     
     @PostMapping
@@ -23,7 +23,6 @@ public class CategoryController {
             Category category = categoryService.addCategory(request);
             return ResponseEntity.ok(new DataResponse(category, null));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.badRequest().body(new DataResponse(null, e.getMessage()));
         }
     }

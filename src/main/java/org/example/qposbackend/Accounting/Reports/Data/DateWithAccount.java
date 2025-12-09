@@ -6,5 +6,5 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class DateWithAccount extends DatesData{
-    private String accountNumber;
+    private Long accountId;
 }

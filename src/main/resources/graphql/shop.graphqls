@@ -1,0 +1,45 @@
+type Shop {
+    id: ID!
+    name: String!
+    code: String!
+    phone: String
+    email: String
+    address: String
+    location: String
+    active: Boolean!
+    currency: String
+    createdAt: String!
+    updatedAt: String!
+}
+
+input CreateShopInput {
+    name: String!
+    phone: String
+    email: String
+    address: String
+    location: String
+    active: Boolean = true
+    currency: String
+}
+
+input UpdateShopInput {
+    id: ID!
+    name: String
+    phone: String
+    email: String
+    address: String
+    location: String
+    active: Boolean
+    currency: String
+}
+
+type Query {
+    shop(id: ID!): Shop
+    shops: [Shop!]!
+}
+
+type Mutation {
+    createShop(input: CreateShopInput!): Shop!
+    updateShop(input: UpdateShopInput!): Shop!
+    deleteShop(shopCode: String!): Shop!
+}

@@ -16,9 +16,10 @@ public interface PartTranRepository extends JpaRepository<PartTran, Long> {
                       SELECT pt.*
                       FROM part_tran pt
                       JOIN tran_header th ON th.tran_id = pt.tran_header_id
-                      JOIN account a ON pt.account_id = a.id
+                      JOIN shop_account sa on pt.shop_account_id = sa.id and shop_id = :shopId
+                      JOIN account a ON sa.account_id = a.id
                       WHERE th.status = 'VERIFIED'
-                      AND DATE(th.verified_date) BETWEEN DATE(:from) AND DATE(:to)
+                      AND DATE(th.posted_date) BETWEEN DATE(:from) AND DATE(:to)
                       AND a.account_name = :accountName
                   )
                   SELECT vpt.*
@@ -28,8 +29,10 @@ public interface PartTranRepository extends JpaRepository<PartTran, Long> {
                       FROM eod_parttrans ep
                       WHERE vpt.id = ep.involved_transactions_id
                   );
-
+                  
                   """)
-  List<PartTran> findAllVerifiedByVerifiedDateBetweenAndAccountName(
+  List<PartTran> findAllVerifiedByVerifiedDateBetweenAndAccountName(Long shopId,
       LocalDate from, LocalDate to, String accountName);
+
+  List<PartTran> findAllByShopAccountIsNullAndAccountNotNull();
 }

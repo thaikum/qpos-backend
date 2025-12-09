@@ -28,5 +28,5 @@ public class StockItem {
     private Integer packaging = 1;
 
     @Column(nullable = false)
-    private int quantity;
+    private Double quantity;
 }

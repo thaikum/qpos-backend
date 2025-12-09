@@ -4,14 +4,15 @@ import jakarta.persistence.*;
 import java.util.List;
 import java.util.Optional;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 
 @Entity
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PriceDetails {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,7 +58,7 @@ public class PriceDetails {
     return price.orElse(this.prices.getLast()).getDiscountAllowed();
   }
 
-  public Double getTotalBuyingPrice(int quantity) {
+  public Double getTotalBuyingPrice(Double quantity) {
     if (quantity >= 0) {
       Price price = prices.getLast();
       return price.getBuyingPrice() * quantity;
@@ -75,7 +76,7 @@ public class PriceDetails {
     return totalBuyingPrice;
   }
 
-  public void adjustInventoryQuantity(int quantityChange) {
+  public void adjustInventoryQuantity(Double quantityChange) {
     if (quantityChange >= 0) {
       Price price = prices.getLast();
       price.setQuantityUnderThisPrice(price.getQuantityUnderThisPrice() + quantityChange);

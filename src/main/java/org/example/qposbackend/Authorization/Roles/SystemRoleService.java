@@ -20,34 +20,43 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SystemRoleService {
-    private final SystemRoleRepository systemRoleRepository;
-    private final PrivilegeRepository privilegeRepository;
+  private final SystemRoleRepository systemRoleRepository;
+  private final PrivilegeRepository privilegeRepository;
 
-    @Bean
-    @DependsOn("privilegesInitializer")
-    private void initializeRoles() {
-        Optional<SystemRole> optionalSystemRole = systemRoleRepository.findById("ADMIN");
-        SystemRole systemRole;
+  @Bean
+  @DependsOn("privilegesInitializer")
+  private void initializeRoles() {
+    Optional<SystemRole> optionalSystemRole = systemRoleRepository.findById("ADMIN");
+    Optional<SystemRole> optionalOwnerRole = systemRoleRepository.findById("OWNER");
+    SystemRole systemRole, ownerRole;
 
-        systemRole = optionalSystemRole.orElseGet(() -> SystemRole.builder()
-                .name("ADMIN")
-                .build());
+    systemRole = optionalSystemRole.orElseGet(() -> SystemRole.builder().name("ADMIN").build());
+    ownerRole = optionalOwnerRole.orElseGet(() -> SystemRole.builder().name("ADMIN").build());
 
-        Set<Privilege> privilegeSet = new HashSet<>(privilegeRepository.findAll());
+    Set<Privilege> privilegeSet = new HashSet<>(privilegeRepository.findAll());
 
-        systemRole.setPrivileges(privilegeSet);
+    systemRole.setPrivileges(privilegeSet);
+    ownerRole.setPrivileges(privilegeSet);
 
-        systemRoleRepository.save(systemRole);
-    }
+    systemRoleRepository.saveAll(List.of(systemRole, ownerRole)); // initialize roles
+  }
 
-    public List<RoleDTO> getRoles() {
-        return systemRoleRepository.findAll().stream().map(role ->
-                new RoleDTO(role.getName(), role.getPrivileges().stream().map(p ->
-                        {
-                            PrivilegesEnum privilege = PrivilegesEnum.valueOf(p.getPrivilege());
-                            return new PrivilegeDTO(privilege.name(), privilege.getDisplayName(), privilege.getCategory());
-                        }
-                ).collect(Collectors.toList()))
-        ).collect(Collectors.toList());
-    }
+  public List<RoleDTO> getRoles() {
+    return systemRoleRepository.findAll().stream()
+        .map(
+            role ->
+                new RoleDTO(
+                    role.getName(),
+                    role.getPrivileges().stream()
+                        .map(
+                            p -> {
+                              PrivilegesEnum privilege = PrivilegesEnum.valueOf(p.getPrivilege());
+                              return new PrivilegeDTO(
+                                  privilege.name(),
+                                  privilege.getDisplayName(),
+                                  privilege.getCategory());
+                            })
+                        .collect(Collectors.toList())))
+        .collect(Collectors.toList());
+  }
 }

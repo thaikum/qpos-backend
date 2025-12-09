@@ -16,52 +16,57 @@ import java.util.Optional;
 @RequestMapping("user-activity")
 @RequiredArgsConstructor
 public class UserActivityController {
-    private final UserActivityRepository userActivityRepository;
-    private final UserActivityService userActivityService;
-    private final SpringSecurityAuditorAware springSecurityAuditorAware;
+  private final UserActivityRepository userActivityRepository;
+  private final UserActivityService userActivityService;
+  private final SpringSecurityAuditorAware springSecurityAuditorAware;
 
-    @GetMapping("{user_id}")
-    public ResponseEntity<DataResponse> getUserActivity(@PathVariable("user_id") Long userId) {
-        try{
-            return ResponseEntity.ok(new DataResponse(userActivityRepository.findByUserId(userId), null));
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new DataResponse(null, e.getMessage()));
-        }
+  @GetMapping("{user_id}")
+  public ResponseEntity<DataResponse> getUserActivity(@PathVariable("user_id") Long userId) {
+    try {
+      return ResponseEntity.ok(new DataResponse(userActivityRepository.findByUserId(userId), null));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body(new DataResponse(null, e.getMessage()));
     }
+  }
 
-    @GetMapping("user-is-checked-in")
-    public ResponseEntity<MessageResponse> getLastSession() {
-        try{
-            long userId = springSecurityAuditorAware.getCurrentAuditor().get().getId();
-            Optional<UserActivity> activity = userActivityRepository.findFirstByUserIdOrderByTimeInDesc(userId);
+  @GetMapping("user-is-checked-in")
+  public ResponseEntity<MessageResponse> getLastSession() {
+    try {
+      long userShopId = springSecurityAuditorAware.getCurrentAuditor().get().getId();
+      Optional<UserActivity> activity =
+          userActivityRepository.findFirstByUserShopIdOrderByTimeInDesc(userShopId);
 
-            if(activity.isPresent() && Objects.isNull(activity.get().getTimeOut())){
-                return ResponseEntity.ok(new MessageResponse("yes"));
-            }else{
-                return ResponseEntity.ok(new MessageResponse("no"));
-            }
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
-        }
+      if (activity.isPresent() && Objects.isNull(activity.get().getTimeOut())) {
+        return ResponseEntity.ok(new MessageResponse("yes"));
+      } else {
+        return ResponseEntity.ok(new MessageResponse("no"));
+      }
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
     }
+  }
 
-    @PostMapping("check-in")
-    public ResponseEntity<MessageResponse> createUserActivity(HttpServletRequest request) {
-        try {
-            userActivityService.createUserActivity(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("You have successfully checked in"));
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse(e.getMessage()));
-        }
+  @PostMapping("check-in")
+  public ResponseEntity<MessageResponse> createUserActivity(HttpServletRequest request) {
+    try {
+      userActivityService.createUserActivity(request);
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(new MessageResponse("You have successfully checked in"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(new MessageResponse(e.getMessage()));
     }
+  }
 
-    @PostMapping("check-out")
-    public ResponseEntity<MessageResponse> checkOut(HttpServletRequest request){
-        try {
-            userActivityService.checkOut(request);
-            return ResponseEntity.ok(new MessageResponse("You have successfully checked out"));
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse(e.getMessage()));
-        }
+  @PostMapping("check-out")
+  public ResponseEntity<MessageResponse> checkOut(HttpServletRequest request) {
+    try {
+      userActivityService.checkOut(request);
+      return ResponseEntity.ok(new MessageResponse("You have successfully checked out"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(new MessageResponse(e.getMessage()));
     }
+  }
 }

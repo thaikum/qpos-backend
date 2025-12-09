@@ -5,6 +5,8 @@ import net.sf.jasperreports.engine.*;
 import org.example.qposbackend.Accounting.Reports.Data.DateWithAccount;
 import org.example.qposbackend.Accounting.Reports.Data.DatesData;
 import org.example.qposbackend.Accounting.Reports.Data.NumberOfDaysData;
+import org.example.qposbackend.Authorization.User.userShop.UserShop;
+import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ResourceUtils;
@@ -17,56 +19,78 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
 public class ReportsService {
 
-    @Value("${files.resources}/reports")
-    private String reportsPath;
-    @Value("${spring.datasource.url}")
-    private String dbUrl;
-    @Value("${spring.datasource.username}")
-    private String dbUsername;
-    @Value("${spring.datasource.password}")
-    private String dbPassword;
+  @Value("${files.resources}/reports")
+  private String reportsPath;
 
-    public byte[] generatePAndLReport(DatesData datesData) throws JRException, SQLException, FileNotFoundException {
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("startDate", datesData.getStartDate());
-        parameters.put("endDate", datesData.getEndDate());
+  @Value("${spring.datasource.url}")
+  private String dbUrl;
 
-        return generateJasperReport(parameters, "profit_and_loss_report.jrxml");
-    }
+  @Value("${spring.datasource.username}")
+  private String dbUsername;
 
-    public byte[] generateAccountStatement(DateWithAccount acData) throws SQLException, JRException, FileNotFoundException {
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("startDate", acData.getStartDate());
-        parameters.put("endDate", acData.getEndDate());
-        parameters.put("accountNumber", acData.getAccountNumber());
+  @Value("${spring.datasource.password}")
+  private String dbPassword;
 
-        return generateJasperReport(parameters, "account_statement.jrxml");
-    }
+  private final SpringSecurityAuditorAware auditorAware;
 
+  public byte[] generatePAndLReport(DatesData datesData)
+      throws JRException, SQLException, FileNotFoundException {
+    Map<String, Object> parameters = new HashMap<>();
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-    private byte[] generateJasperReport(Map<String, Object> parameters, String jasperFileName) throws SQLException, FileNotFoundException, JRException {
-        String jdbcUrl = dbUrl.split("\\?")[0];
-        Connection connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbPassword);
+    parameters.put("startDate", datesData.getStartDate());
+    parameters.put("endDate", datesData.getEndDate());
+    parameters.put("shopId", userShop.getShop().getId());
 
-        JasperReport jasperReport;
-        File file = ResourceUtils.getFile(reportsPath+"/"+jasperFileName);
-        jasperReport = JasperCompileManager.compileReport(file.getAbsolutePath());
-        JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
+    return generateJasperReport(parameters, "profit_and_loss_report.jrxml");
+  }
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        JasperExportManager.exportReportToPdfStream(jasperPrint, baos);
-        return baos.toByteArray();
-    }
+  public byte[] generateAccountStatement(DateWithAccount acData)
+      throws SQLException, JRException, FileNotFoundException {
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("startDate", acData.getStartDate());
+    parameters.put("endDate", acData.getEndDate());
+    parameters.put("accountId", acData.getAccountId());
 
-    public byte[] generateRestockingReport(NumberOfDaysData numberOfDaysData) throws JRException, SQLException, FileNotFoundException {
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("days_to_stock", numberOfDaysData.getNumberOfDays());
+    return generateJasperReport(parameters, "account_statement.jrxml");
+  }
 
-        return generateJasperReport(parameters, "future_stocking_report.jrxml");
-    }
+  private byte[] generateJasperReport(Map<String, Object> parameters, String jasperFileName)
+      throws SQLException, FileNotFoundException, JRException {
+    String jdbcUrl = dbUrl.split("\\?")[0];
+    Connection connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbPassword);
+
+    JasperReport jasperReport;
+    File file = ResourceUtils.getFile(reportsPath + "/" + jasperFileName);
+    jasperReport = JasperCompileManager.compileReport(file.getAbsolutePath());
+    JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JasperExportManager.exportReportToPdfStream(jasperPrint, baos);
+    return baos.toByteArray();
+  }
+
+  public byte[] generateRestockingReport(NumberOfDaysData numberOfDaysData)
+      throws JRException, SQLException, FileNotFoundException {
+
+    UserShop userShop =
+            auditorAware
+                    .getCurrentAuditor()
+                    .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("days_to_stock", numberOfDaysData.getNumberOfDays());
+    parameters.put("shop_id", userShop.getShop().getId());
+
+    return generateJasperReport(parameters, "future_stocking_report.jrxml");
+  }
 }

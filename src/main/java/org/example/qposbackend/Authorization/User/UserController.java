@@ -1,73 +1,87 @@
 package org.example.qposbackend.Authorization.User;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.qposbackend.Authorization.SystemUserDetails.SystemUserDetails;
+import org.example.qposbackend.Authorization.Privileges.PrivilegesEnum;
+import org.example.qposbackend.Authorization.Privileges.RequirePrivilege;
 import org.example.qposbackend.Authorization.SystemUserDetails.UserDetailsServiceImpl;
+import org.example.qposbackend.Authorization.User.dto.UserDto;
 import org.example.qposbackend.DTOs.AuthRequest;
 import org.example.qposbackend.DTOs.DataResponse;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.DTOs.PasswordChange;
-import org.example.qposbackend.Security.Jwt.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 
 @RestController
 @RequestMapping("users")
 @RequiredArgsConstructor
 public class UserController {
-    private final UserDetailsServiceImpl service;
+  private final UserDetailsServiceImpl service;
 
-    private final JwtUtil jwtUtil;
+  private final UserRepository userRepository;
+  private final UserService userService;
 
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final UserService userService;
+  @GetMapping
+  public ResponseEntity<DataResponse> getUsers() {
+    return ResponseEntity.ok(new DataResponse(userRepository.findAll(), null));
+  }
 
-    @GetMapping
-    public ResponseEntity<DataResponse> getUsers() {
-        return ResponseEntity.ok(new DataResponse(userRepository.findAll(), null));
+  @PostMapping
+  public String addNewUser(@RequestBody User user) {
+    return service.addUser(user);
+  }
+
+  @PostMapping("/create")
+  public ResponseEntity<DataResponse> createUser(@Valid @RequestBody UserDto userDto) {
+    try {
+      User createdUser = userService.createUser(userDto);
+      return ResponseEntity.status(HttpStatus.CREATED).body(new DataResponse(createdUser, null));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(new DataResponse(null, e.getMessage()));
     }
+  }
 
-    @PostMapping
-    public String addNewUser(@RequestBody User user) {
-        return service.addUser(user);
+  @PostMapping("/login")
+  public ResponseEntity<DataResponse> authenticateAndGetToken(
+      @RequestBody AuthRequest authRequest) {
+
+    try {
+      return ResponseEntity.ok(new DataResponse(userService.authenticateUser(authRequest), null));
+    } catch (Exception ex) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(new DataResponse(null, ex.getMessage()));
     }
+  }
 
-    @PostMapping("/login")
-    public ResponseEntity<DataResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
-
-        System.out.println("Attempted");
-        try {
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.email().trim(), authRequest.password().trim()));
-            User user = userRepository.findUserByEmail(authRequest.email()).orElseThrow();
-            String token = jwtUtil.generateToken((SystemUserDetails) authentication.getPrincipal());
-            LoginResponse response = new LoginResponse(token, user);
-            System.out.println("User found");
-            return ResponseEntity.ok(new DataResponse(response, null));
-        } catch (Exception ex) {
-            System.out.println("User not found");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new DataResponse(null, "Invalid!"));
-        }
+  @PostMapping("change-password")
+  public ResponseEntity<MessageResponse> changePassword(
+      @RequestBody PasswordChange passwordChange) {
+    try {
+      userService.updatePassword(passwordChange);
+      return ResponseEntity.ok(new MessageResponse("Password changed!"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new MessageResponse(e.getMessage()));
     }
+  }
 
-    @PostMapping("change-password")
-    public ResponseEntity<MessageResponse> changePassword(@RequestBody PasswordChange passwordChange) {
-        try {
-            userService.updatePassword(passwordChange);
-            return ResponseEntity.ok(new MessageResponse("Password changed!"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new MessageResponse(e.getMessage()));
-        }
+  @GetMapping("/search")
+  @RequirePrivilege(PrivilegesEnum.VIEW_USERS)
+  public ResponseEntity<DataResponse> searchUser(@RequestParam String value) {
+    try {
+      Optional<User> user = userService.searchUser(value);
+      return user.map(user1 -> ResponseEntity.ok(new DataResponse(user1, null)))
+          .orElseGet(
+              () ->
+                  ResponseEntity.status(HttpStatus.NOT_FOUND)
+                      .body(new DataResponse(null, "User not found")));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(new DataResponse(null, e.getMessage()));
     }
-
-
-
-}
-
-record LoginResponse(String token, User user) {
+  }
 }

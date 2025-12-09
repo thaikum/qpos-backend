@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: QposBackend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://localhost:3306/qpos?createDatabaseIfNotExist=true}
+    username: ${SPRING_DATABASE_USERNAME:root}
+    password: ${SPRING_DATABASE_PASSWORD:fredsystem}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+  main:
+    allow-circular-references: true
+
+  graphql:
+    graphiql:
+      enabled: true
+
+upload:
+  path: /home/thaiku/Documents/projects/Pos/QposBackend/src/main/resources/static/
+
+jwt:
+  secret_key: f50e8d8e0a8d94e755ebaf3dffa39167e3fb574ffb7541b225b303ee924e357f0c683d57b6449df32ae89656ec61b79fb8b1934e64a5e60dbdf833e6223f768a
+  expiration_time: 54000000
+
+files:
+  resources: /home/thaiku/Documents/projects/Pos/QposBackend/src/main/resources/
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
