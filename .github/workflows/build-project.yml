@@ -31,17 +31,19 @@ jobs:
     - name: Build with Gradle Wrapper
       run: ./gradlew bootJar
     
-    - name: Test SSH Connection
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.STOQIT_SERVER }}
-        username: ${{ secrets.STOQIT_USER }}
-        password: ${{ secrets.STOQIT_PASSWORD }}
-        timeout: 300s
-        script: |
-          echo "SSH connection successful"
-          whoami
-          pwd
+    - name: Test if secret exists
+      run: |
+        echo "Host is set: ${{ secrets.STOQIT_SERVER != '' }}"
+        echo "User is set: ${{ secrets.STOQIT_USER != '' }}"
+        echo "Pass is set: ${{ secrets.STOQIT_PASSWORD != '' }}"
+        if [ -z "${{ secrets.STOQIT_SERVER }}" ]; then
+          echo "STOQIT_SERVER is NOT set"
+          exit 1
+        else
+          echo "STOQIT_SERVER is set (length: ${#STOQIT_SERVER})"
+        fi
+      env:
+        STOQIT_SERVER: ${{ secrets.STOQIT_SERVER }}
 
     - name: Copy JAR to VPS
       uses: appleboy/scp-action@master
