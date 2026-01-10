@@ -1,9 +1,9 @@
 package org.example.qposbackend.DTOs;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 public record TranHeaderDTO(
-        Date postedDate,
+        LocalDate postedDate,
         List<PartTranDTO> partTrans
 ) {}

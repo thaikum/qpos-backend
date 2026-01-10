@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Builder
@@ -23,8 +23,8 @@ public class ReturnInward {
     @Builder.Default
     private int quantityReturned = 0;
     private String returnReason;
-    private Date dateSold;
-    private Date dateReturned;
+    private LocalDate dateSold;
+    private LocalDate dateReturned;
     @Builder.Default
     private Double costIncurred = 0D;
 }

@@ -9,7 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, Long> {
-    Optional<InventoryItem> findInventoryItemByItem_Id(Long id);
+
+    Optional<InventoryItem> findInventoryItemByIdAndShop_id(long iId, long shopId);
 
     List<InventoryItem> findInventoryItemByShop_IdAndIsDeleted(Long shopId, Boolean isDeleted);
 

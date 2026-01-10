@@ -25,6 +25,9 @@ public interface TranHeaderRepository extends JpaRepository<TranHeader, Long> {
   void verifyStatusByIds(Long userId, List<Long> ids);
 
   @Modifying
-    @Query(nativeQuery = true, value = "update tran_header set status = 'DECLINED', rejected_by_id= :userShopId, rejected_date = current_date() where tran_id in :ids")
+  @Query(
+      nativeQuery = true,
+      value =
+          "update tran_header set status = 'DECLINED', rejected_by_id= :userShopId, rejected_date = current_date() where tran_id in :ids")
   void rejectTransactionById(Long userShopId, List<Long> ids);
 }

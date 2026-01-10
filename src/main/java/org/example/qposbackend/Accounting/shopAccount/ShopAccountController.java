@@ -17,7 +17,7 @@ public class ShopAccountController {
 
   @PostMapping
   public ResponseEntity<MessageResponse> createShopAccount(
-      @RequestBody ShopAccountDto shopAccount) {
+      @RequestBody ShopAccount shopAccount) {
     try {
       shopAccountService.createShopAccount(shopAccount);
       return ResponseEntity.ok(new MessageResponse("Account created successfully"));

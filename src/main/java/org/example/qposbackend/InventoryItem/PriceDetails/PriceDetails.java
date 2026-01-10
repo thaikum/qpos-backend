@@ -1,10 +1,15 @@
 package org.example.qposbackend.InventoryItem.PriceDetails;
 
+import graphql.util.Pair;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 import lombok.*;
+import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceStatus;
 
@@ -76,6 +81,7 @@ public class PriceDetails {
     return totalBuyingPrice;
   }
 
+  /** Adjusts inventory quantity based on price tiers */
   public void adjustInventoryQuantity(Double quantityChange) {
     if (quantityChange >= 0) {
       Price price = prices.getLast();
@@ -91,5 +97,20 @@ public class PriceDetails {
         quantityChange = existing >= quantityChange ? 0 : quantityChange - existing;
       }
     }
+  }
+
+  public List<Pair<Double, Price>> getBuyingPriceBrokenDownPerTheQuantity(Double quantity) {
+    List<Pair<Double, Price>> result = new ArrayList<>();
+    List<Price> sortedPrices =
+        prices.stream().sorted(Comparator.comparingInt(Price::getId)).toList();
+    for (Price price : sortedPrices) {
+      double quantityDeducted = Math.min(quantity, price.getQuantityUnderThisPrice());
+      quantity -= quantityDeducted;
+      if (quantityDeducted > 0) {
+        result.add(new Pair<>(quantityDeducted, price));
+      }
+      if (quantity == 0) return result;
+    }
+    throw new GenericRuntimeException("Not enough stock");
   }
 }

@@ -1,14 +1,15 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
 import jakarta.persistence.*;
-import java.util.Date;
+
+import java.time.LocalDate;
 import java.util.List;
 import lombok.*;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
-import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.Integrity.IntegrityAttributes;
+import org.example.qposbackend.shop.Shop;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -23,8 +24,8 @@ public class TranHeader extends IntegrityAttributes{
     private Double totalAmount;
     @Enumerated(EnumType.STRING)
     private TransactionStatus status;
-    private Date postedDate;
-    private Date verifiedDate;
+    private LocalDate postedDate;
+    private LocalDate verifiedDate;
     @ManyToOne
     private UserShop postedBy;
     @ManyToOne
@@ -32,9 +33,11 @@ public class TranHeader extends IntegrityAttributes{
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name="tran_header_id")
     private List<PartTran> partTrans;
-    private Date rejectedDate;
+    private LocalDate rejectedDate;
     private String rejectionReason;
     @ManyToOne
     @JoinColumn(name = "rejected_by_id")
     private UserShop rejectedBy;
+    @ManyToOne
+    private Shop shop;
 }

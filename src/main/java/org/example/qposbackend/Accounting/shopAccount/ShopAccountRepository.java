@@ -18,6 +18,8 @@ public interface ShopAccountRepository extends JpaRepository<ShopAccount, Long> 
 
     Optional<ShopAccount> findByShopAndAccount_AccountName(Shop shop, String accountName);
 
+    Optional<ShopAccount> findByAccountNameAndShop(String accountName, Shop shop);
+
     Optional<ShopAccount> findByShop_idAndAccount_id(Long shopId, Long accountId);
 
     @Modifying

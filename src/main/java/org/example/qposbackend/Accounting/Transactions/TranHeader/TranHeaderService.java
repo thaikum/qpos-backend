@@ -1,22 +1,31 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
+
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.SimpleJournal;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
+import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.PartTranDTO;
 import org.example.qposbackend.DTOs.TranHeaderDTO;
 import org.example.qposbackend.DTOs.TransactionDTO;
+import org.example.qposbackend.EOD.EODDateService;
+import org.example.qposbackend.EOD.EODService;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.example.qposbackend.constants.Constants.TIME_ZONE;
 
 @Service
 @RequiredArgsConstructor
@@ -26,12 +35,53 @@ public class TranHeaderService {
   private final SpringSecurityAuditorAware springSecurityAuditorAware;
   private final SpringSecurityAuditorAware auditorAware;
   private final ShopAccountRepository shopAccountRepository;
+  private final AuthUserShopProvider authProvider;
+  private final EODDateService dateService;
+
+  public TranHeader createSimpleTransaction(SimpleJournal simpleJournal) {
+    UserShop userShop = authProvider.getCurrentUserShop();
+    List<PartTran> partTrans = new ArrayList<>();
+
+    int x = 0;
+    for (var jLine : simpleJournal.getJournalLines()) {
+      ShopAccount shopAccount =
+          shopAccountRepository
+              .findByAccountNameAndShop(jLine.getAccountName(), userShop.getShop())
+              .orElseThrow(
+                  () ->
+                      new EntityNotFoundException(
+                          String.format(
+                              "Account with name %s does not exist!", jLine.getAccountName())));
+      partTrans.add(
+          PartTran.builder()
+              .partTranNumber(x)
+              .tranType(jLine.getTranType())
+              .amount(jLine.getAmount())
+              .tranParticulars(simpleJournal.getParticulars())
+              .shopAccount(shopAccount)
+              .build());
+      x++;
+    }
+
+    TranHeader tranHeader =
+        TranHeader.builder()
+            .status(TransactionStatus.UNVERIFIED)
+            .postedDate(dateService.getSystemDateOrThrowIfEodNotDone())
+            .postedBy(userShop)
+            .partTrans(partTrans)
+            .build();
+
+    return saveVerifyAndReturn(tranHeader);
+  }
 
   public void saveAndVerifyTranHeader(TranHeader tranHeader) {
-    log.info("Before saving the transactions: {} ", tranHeader.toString());
     tranHeaderRepository.save(tranHeader);
-    log.info("Saved the transactions");
     verifyTransaction(tranHeader);
+  }
+
+  public TranHeader saveVerifyAndReturn(TranHeader tranHeader) {
+    tranHeader = tranHeaderRepository.save(tranHeader);
+    return verifyTranAndReturn(tranHeader);
   }
 
   public void verifyTransaction(TranHeader tranHeader) {
@@ -43,14 +93,14 @@ public class TranHeaderService {
 
     List<Long> ids = new ArrayList<>();
 
-    transactionProcessor(tranHeader, shopAccountMap, ids);
+    processTransaction(tranHeader, shopAccountMap, ids);
     tranHeaderRepository.verifyStatusByIds(userShop.getId(), ids);
     for (Map.Entry<Long, Double> entry : shopAccountMap.entrySet()) {
       shopAccountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
     }
   }
 
-  private void transactionProcessor(
+  private void processTransaction(
       TranHeader tranHeader, Map<Long, Double> shopAccountMap, List<Long> ids) {
     Double net = 0.0;
     for (PartTran part : tranHeader.getPartTrans()) {
@@ -85,7 +135,7 @@ public class TranHeaderService {
 
     List<Long> ids = new ArrayList<>();
     for (TranHeader tranHeader : tranHeaders) {
-      transactionProcessor(tranHeader, shopAccountMap, ids);
+      processTransaction(tranHeader, shopAccountMap, ids);
     }
     log.info("Now saving");
     tranHeaderRepository.verifyStatusByIds(userShop.getId(), ids);
@@ -95,18 +145,19 @@ public class TranHeaderService {
     log.info("Done saving");
   }
 
-  public void declineTranHeaders(List<Long> ids) {
-    UserShop userShop =
-        auditorAware
-            .getCurrentAuditor()
-            .orElseThrow(() -> new NoSuchElementException("User not found"));
-    tranHeaderRepository.rejectTransactionById(userShop.getId(), ids);
-  }
+  public TranHeader verifyTranAndReturn(TranHeader tranHeader) {
+    tranHeader.setStatus(TransactionStatus.VERIFIED);
+    tranHeader.setVerifiedBy(authProvider.getCurrentUserShop());
+    List<Long> ids = new ArrayList<>();
+    Map<Long, Double> shopAccountMap = new HashMap<>();
 
-  public void createAndVerifyTransaction(TranHeaderDTO tranHeaderDTO) {
+    processTransaction(tranHeader, shopAccountMap, ids);
+    tranHeader = tranHeaderRepository.save(tranHeader);
 
-    TranHeader tranHeader = createTransactions(tranHeaderDTO);
-    verifyTransaction(tranHeader);
+    for (Map.Entry<Long, Double> entry : shopAccountMap.entrySet()) {
+      shopAccountRepository.updateAccountBalance(entry.getKey(), entry.getValue());
+    }
+    return tranHeader;
   }
 
   public TranHeader createTransactions(TranHeaderDTO tranHeaderDTO) {
@@ -119,7 +170,9 @@ public class TranHeaderService {
       TranHeader tranHeader =
           TranHeader.builder()
               .postedBy(userShop)
-              .postedDate(ObjectUtils.firstNonNull(tranHeaderDTO.postedDate(), new Date()))
+              .postedDate(
+                  Objects.requireNonNullElse(
+                      tranHeaderDTO.postedDate(), dateService.getSystemDateOrThrowIfEodNotDone()))
               .status(TransactionStatus.UNVERIFIED)
               .build();
 
@@ -185,5 +238,15 @@ public class TranHeaderService {
       }
     }
     return transactionDTOList;
+  }
+
+  public TranHeader createBaseTranHeader(LocalDate date, UserShop userShop) {
+    return TranHeader.builder()
+        .postedDate(date)
+        .postedBy(userShop)
+        .verifiedBy(userShop)
+        .status(TransactionStatus.VERIFIED)
+        .verifiedDate(date)
+        .build();
   }
 }

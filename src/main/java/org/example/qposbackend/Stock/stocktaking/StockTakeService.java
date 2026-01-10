@@ -1,6 +1,9 @@
 package org.example.qposbackend.Stock.stocktaking;
 
 import jakarta.transaction.Transactional;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -9,7 +12,9 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
+import org.example.qposbackend.Accounting.shopAccount.DefaultAccount;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccountService;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.*;
@@ -20,10 +25,11 @@ import org.example.qposbackend.Stock.stocktaking.data.*;
 import org.example.qposbackend.Stock.stocktaking.discrepancy.DiscrepancyCategorization;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItemService;
-import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfig;
 import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfigRepository;
 import org.example.qposbackend.order.OrderService;
 import org.springframework.stereotype.Service;
+
+import static org.example.qposbackend.constants.Constants.TIME_ZONE;
 
 @Slf4j
 @Service
@@ -36,6 +42,7 @@ public class StockTakeService {
   private final OrderService orderService;
   private final TranHeaderService tranHeaderService;
   private final ShopAccountRepository shopAccountRepository;
+  private final ShopAccountService shopAccountService;
   private final SpringSecurityAuditorAware auditorAware;
   private final StockTakeItemService stockTakeItemService;
 
@@ -173,14 +180,13 @@ public class StockTakeService {
                   stockTakeItem.setQuantity(stockTakeItemReconDto.getQuantity());
                 }
 
-                List<DiscrepancyCategorization> discrepancies = stockTakeItemService.getDiscrepancyCategoryList(stockTakeItemReconDto);
+                List<DiscrepancyCategorization> discrepancies =
+                    stockTakeItemService.getDiscrepancyCategoryList(stockTakeItemReconDto);
                 stockTakeItem.setDiscrepancyCategorization(discrepancies);
               }
             });
     stockTakeRepository.save(stockTake);
   }
-
-
 
   private TranHeaderDTO processGoodsAccount(
       StockTakeItem stockTakeItem,
@@ -193,9 +199,7 @@ public class StockTakeService {
             .orElseThrow(() -> new NoSuchElementException("User not found"));
 
     ShopAccount costOfGoodsAccount =
-        shopAccountRepository
-            .findByShopAndAccount_AccountName(userShop.getShop(), "COST OF GOODS")
-            .orElseThrow(() -> new NoSuchElementException("COST OF GOODS account not found"));
+        shopAccountService.getDefaultAccount(DefaultAccount.COST_OF_GOODS);
 
     PartTranDTO credit =
         new PartTranDTO(
@@ -216,7 +220,7 @@ public class StockTakeService {
                 .getTotalBuyingPrice(stockTakeRecon.getQuantity()),
             particulars,
             expenseAccount.getId());
-    return new TranHeaderDTO(new Date(), List.of(credit, debit));
+    return new TranHeaderDTO(LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(credit, debit));
   }
 
   private TranHeaderDTO processPenalty(
@@ -242,7 +246,7 @@ public class StockTakeService {
             groupItemsStockTakeRecon.getPenalty(),
             "Penalty: " + groupItemsStockTakeRecon.getDescription(),
             penaltyAccount.getId());
-    return new TranHeaderDTO(new Date(), List.of(credit, debit));
+    return new TranHeaderDTO(LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(credit, debit));
   }
 
   private Optional<StockTakeItem> getStockTakeItemFromStockTakeById(
