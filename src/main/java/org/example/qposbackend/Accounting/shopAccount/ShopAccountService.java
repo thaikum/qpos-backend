@@ -14,6 +14,7 @@ import org.example.qposbackend.Accounting.Accounts.AccountRepository;
 import org.example.qposbackend.Accounting.Accounts.AccountTypes;
 import org.example.qposbackend.Accounting.shopAccount.dto.ShopAccountDto;
 import org.example.qposbackend.Accounting.shopAccount.mapper.Mapper;
+import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.shop.Shop;
@@ -30,9 +31,10 @@ public class ShopAccountService {
   private final ShopAccountRepository shopAccountRepository;
   private final AccountRepository accountRepository;
   private final SpringSecurityAuditorAware auditorAware;
+  private final AuthUserShopProvider authProvider;
 
   @Transactional
-  public void createShopAccount(ShopAccountDto shopAccountDto) {
+  public void createShopAccount(ShopAccount shopAccountDto) {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
@@ -74,18 +76,18 @@ public class ShopAccountService {
   }
 
   @Bean
-  private NullType mapAccountToShopAccount(ShopAccountRepository shopAccountRepository){
-      List<ShopAccount> shopAccounts = shopAccountRepository.findAllByAccountNameIsNull();
-      for (ShopAccount shopAccount : shopAccounts) {
-          if(shopAccount.getAccount() != null){
-            shopAccount.setAccountNumber(shopAccount.getAccount().getAccountNumber());
-            shopAccount.setAccountName(shopAccount.getAccount().getAccountName());
-            shopAccount.setAccountType(shopAccount.getAccount().getAccountType());
-            shopAccount.setDescription(shopAccount.getAccount().getDescription());
-          }
+  private NullType mapAccountToShopAccount(ShopAccountRepository shopAccountRepository) {
+    List<ShopAccount> shopAccounts = shopAccountRepository.findAllByAccountNameIsNull();
+    for (ShopAccount shopAccount : shopAccounts) {
+      if (shopAccount.getAccount() != null) {
+        shopAccount.setAccountNumber(shopAccount.getAccount().getAccountNumber());
+        shopAccount.setAccountName(shopAccount.getAccount().getAccountName());
+        shopAccount.setAccountType(shopAccount.getAccount().getAccountType());
+        shopAccount.setDescription(shopAccount.getAccount().getDescription());
       }
-      shopAccountRepository.saveAll(shopAccounts);
-      return null;
+    }
+    shopAccountRepository.saveAll(shopAccounts);
+    return null;
   }
 
   public List<ShopAccount> getShopAccounts() {
@@ -177,8 +179,7 @@ public class ShopAccountService {
       oldShopAccount.setAccountName(shopAccountDto.getAccountName());
     }
     oldShopAccount.setDescription(
-        ObjectUtils.firstNonNull(
-            oldShopAccount.getDescription(), shopAccountDto.getDescription()));
+        ObjectUtils.firstNonNull(oldShopAccount.getDescription(), shopAccountDto.getDescription()));
     oldShopAccount.setCurrency(
         ObjectUtils.firstNonNull(shopAccountDto.getCurrency(), oldShopAccount.getCurrency()));
     oldShopAccount.setBalance(
@@ -198,5 +199,24 @@ public class ShopAccountService {
     }
     oldShopAccount = shopAccountRepository.save(oldShopAccount);
     return Mapper.shopAccountToShopAccountDto(oldShopAccount);
+  }
+
+  public ShopAccount getDefaultAccount(DefaultAccount defaultAccount) {
+    Shop shop = authProvider.getCurrentShop();
+    return shopAccountRepository
+        .findByAccountNameAndShop(defaultAccount.getAccountName(), shop)
+        .orElseGet(
+            () -> {
+              ShopAccount shopAccount =
+                  ShopAccount.builder()
+                      .accountName(defaultAccount.getAccountName())
+                      .accountType(defaultAccount.getAccountType().name())
+                      .description(defaultAccount.getDescription())
+                      .shop(shop)
+                      .balance(0.0)
+                      .isActive(true)
+                      .build();
+              return shopAccountRepository.save(shopAccount);
+            });
   }
 }

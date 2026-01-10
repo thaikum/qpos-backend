@@ -173,12 +173,10 @@ public class InventoryItemService {
         .adjustInventoryQuantity(quantityAdjustmentDto.quantity() - inventoryItem.getQuantity());
     return inventoryItemRepository.save(inventoryItem);
   }
-}
 
-@Data
-class CalcBody {
-  private String itemName;
-  private Integer quantity;
-  private Double buyingPrice;
-  private Double sellingPrice;
+  @Transactional
+  public void deductItems(InventoryItem ii, Double quantity){
+    ii.getPriceDetails().adjustInventoryQuantity(-quantity);
+    inventoryItemRepository.save(ii);
+  }
 }

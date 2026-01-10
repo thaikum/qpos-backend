@@ -9,6 +9,7 @@ import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
 import org.example.qposbackend.order.receipt.ReceiptData;
+import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInwardService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class OrderController {
   private final OrderService orderService;
+  private final ReturnInwardService returnInwardService;
 
   @PostMapping
   public ResponseEntity<?> createOrder(@RequestBody SaleOrder order) {
@@ -36,7 +38,7 @@ public class OrderController {
   @PostMapping("return-item")
   public ResponseEntity<MessageResponse> returnItem(
       @RequestBody ReturnItemRequest returnItemRequest) {
-    orderService.returnItem(returnItemRequest);
+    returnInwardService.returnItem(returnItemRequest);
     return ResponseEntity.ok(new MessageResponse("Item returned successfully"));
   }
 

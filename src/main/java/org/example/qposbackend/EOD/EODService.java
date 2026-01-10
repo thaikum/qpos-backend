@@ -1,35 +1,31 @@
 package org.example.qposbackend.EOD;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTranRepository;
 import org.example.qposbackend.Authorization.User.User;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
-import org.example.qposbackend.DTOs.DataResponse;
 import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.EndOfDayDTO;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
+import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.order.OrderService;
 import org.example.qposbackend.order.SaleOrder;
-import org.example.qposbackend.Security.SpringSecurityAuditorAware;
-import org.hibernate.sql.results.spi.LoadContexts;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EODService {
-  private final OrderService orderService;
   private final EODRepository eoDRepository;
   private final PartTranRepository partTranRepository;
   private final SpringSecurityAuditorAware auditorAware;
+  private final OrderService orderService;
   private List<PartTran> eodTrasactions = new ArrayList<>();
 
   public List<EOD> fetchByRange(DateRange dateRange) {
@@ -51,7 +47,6 @@ public class EODService {
 
     if (previousEodOpt.isPresent()) {
       EOD prev = previousEodOpt.get();
-      log.info("Previous date is: {}, current date is: {}", prev.getDate(), LocalDate.now());
       if (prev.getDate().equals(LocalDate.now()) || prev.getDate().isAfter(LocalDate.now())) {
         throw new RuntimeException("Cannot perform end of day that is in the future");
       }
@@ -86,8 +81,7 @@ public class EODService {
     double totalMobileSale = totalSales.mobileTotal;
     log.info("Recovered debt is: {}", endOfDayDTO.totalRecoveredDebt());
     double totalReceivables =
-            endOfDayDTO.balanceBroughtDownCash()
-            + endOfDayDTO.balanceBroughtDownMobile();
+        endOfDayDTO.balanceBroughtDownCash() + endOfDayDTO.balanceBroughtDownMobile();
     User user =
         auditorAware
             .getCurrentAuditor()
@@ -114,10 +108,6 @@ public class EODService {
       if (dateDiff == 0) {
         throw new NotAcceptableException("End of Day cannot be done twice in the same day");
       } else {
-        log.info(
-            "Toda is: {}. Tomorrow will be: {}",
-            previousEod.getDate(),
-            previousEod.getDate().plusDays(1));
         eod.setDate(previousEod.getDate().plusDays(1));
       }
 
@@ -207,6 +197,10 @@ public class EODService {
     double totalDebtOwed = 0D;
 
     for (SaleOrder saleOrder : sales) {
+      if (saleOrder.getModeOfPayment() != null
+          && saleOrder.getModeOfPayment().equalsIgnoreCase("hire-purchase")) {
+        continue;
+      }
       double cash = Optional.ofNullable(saleOrder.getAmountInCash()).orElse(0D);
       double mobileMoney = Optional.ofNullable(saleOrder.getAmountInMpesa()).orElse(0D);
       totalDebtOwed += Optional.ofNullable(saleOrder.getAmountInCredit()).orElse(0D);
@@ -243,7 +237,9 @@ public class EODService {
         }
       }
     }
-    return new CurAssets(totalCashSale, totalMobileSale, totalDebtOwed);
+    var assets = new CurAssets(totalCashSale, totalMobileSale, totalDebtOwed);
+    log.info("Assets are: {}", assets);
+    return assets;
   }
 
   record CurAssets(Double cashTotal, Double mobileTotal, Double debtTotal) {}

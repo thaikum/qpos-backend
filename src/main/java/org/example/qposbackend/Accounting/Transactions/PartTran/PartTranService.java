@@ -22,4 +22,15 @@ public class PartTranService {
     partTranRepository.saveAll(partTranList);
     return true;
   }
+
+  public PartTran generatePartTran(
+          char type, double amount, String particulars, ShopAccount account, Integer partTranNumber) {
+    return PartTran.builder()
+            .tranType(type)
+            .amount(amount)
+            .tranParticulars(particulars)
+            .shopAccount(account)
+            .partTranNumber(partTranNumber)
+            .build();
+  }
 }

@@ -15,4 +15,5 @@ public class ReceiptData {
     private String orderNo;
     private List<ReceiptItem> receiptItems;
     private Double receiptTotal;
+    private String cashier;
 }
