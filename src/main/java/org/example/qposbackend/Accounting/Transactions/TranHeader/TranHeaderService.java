@@ -66,7 +66,7 @@ public class TranHeaderService {
     TranHeader tranHeader =
         TranHeader.builder()
             .status(TransactionStatus.UNVERIFIED)
-            .postedDate(dateService.getSystemDateOrThrowIfEodNotDone())
+            .postedDate(dateService.getCurrentSystemDate(userShop.getShop()))
             .postedBy(userShop)
             .partTrans(partTrans)
             .build();
@@ -172,7 +172,7 @@ public class TranHeaderService {
               .postedBy(userShop)
               .postedDate(
                   Objects.requireNonNullElse(
-                      tranHeaderDTO.postedDate(), dateService.getSystemDateOrThrowIfEodNotDone()))
+                      tranHeaderDTO.postedDate(), dateService.getCurrentSystemDate(userShop.getShop())))
               .status(TransactionStatus.UNVERIFIED)
               .build();
 
