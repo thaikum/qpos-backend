@@ -1,20 +1,16 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans;
 
-import lombok.Builder;
+import java.util.List;
 import lombok.Data;
-import org.example.qposbackend.Accounting.Transactions.TranHeader.TransactionCategory;
+import lombok.EqualsAndHashCode;
+import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 
-import java.time.LocalDate;
-import java.util.List;
-
 @Data
-@Builder
-public class HandlerTran {
-    private LocalDate postedDate;
-    private Double totalAmount;
-    private String description;
-    private ShopAccount primaryAccount;
-    private TransactionCategory category;
-    private List<SecondaryTransactions> secondaryTransactions;
+@EqualsAndHashCode(callSuper = true)
+public class HandlerTran extends HandlerTranBase {
+  private ShopAccount primaryAccount;
+  private Long tranId;
+  private TransactionStatus status;
+  private List<SecondaryTransaction> secondaryTransactions;
 }

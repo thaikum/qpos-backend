@@ -1,9 +1,11 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
 import jakarta.transaction.Transactional;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.IStatisticsReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.Date;
@@ -17,20 +19,37 @@ public interface TranHeaderRepository extends JpaRepository<TranHeader, Long> {
   List<TranHeader> findAllByStatusAndPostedDateBetween(
       Long shopId, String status, Date from, Date to);
 
-  @Query(
-      nativeQuery = true,
-      value =
-"""
-        select *
-        from tran_header
-        where shop_id = :shopId
-          and posted_date between :from and :to
-          and status = :status
-                and (:category is not null and tran_category = :category) or :category is null
-        order by posted_date desc
-        """)
-  List<TranHeader> findAllByStatusPostedByAndDateBetweenAndStatus(
-          Long shopId, String status, LocalDate from, LocalDate to, String category);
+  @Query(nativeQuery = true, value = """
+    SELECT *
+    FROM tran_header
+    WHERE shop_id = :shopId
+      AND posted_date BETWEEN :from AND :to
+      AND status = :status
+      AND (:category IS NULL OR tran_category = :category)
+    ORDER BY posted_date DESC
+    """)
+  List<TranHeader> findTransactionsCustom(
+          @Param("shopId") Long shopId,
+          @Param("status") String status,
+          @Param("from") LocalDate from,
+          @Param("to") LocalDate to,
+          @Param("category") String category
+  );
+
+  @Query(nativeQuery = true, value = """
+          SELECT status, count(*) as totalCount
+          FROM tran_header
+          WHERE shop_id = :shopId
+            AND posted_date BETWEEN :from AND :to
+            AND (:category IS NULL OR tran_category = :category)
+          GROUP BY status
+          """)
+  List<IStatisticsReport> getTransactionStatistics(
+          @Param("shopId") Long shopId,
+          @Param("from") LocalDate from,
+          @Param("to") LocalDate to,
+          @Param("category") String category
+  );
 
   @Transactional
   @Modifying

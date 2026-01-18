@@ -8,6 +8,7 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepo
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TransactionCategory;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTran;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccountService;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +17,9 @@ import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranTyp
 @Service
 public class ExpensesTransactionHandler extends TransactionHandler {
 
-  public ExpensesTransactionHandler(
-      TranHeaderService tranHeaderService,
-      AuthUserShopProvider authProvider,
-      PartTranService partTranService,
-      TranHeaderRepository tranHeaderRepository) {
-    super(tranHeaderService, authProvider, partTranService, tranHeaderRepository);
+
+  public ExpensesTransactionHandler(TranHeaderService tranHeaderService, AuthUserShopProvider authProvider, PartTranService partTranService, TranHeaderRepository tranHeaderRepository, ShopAccountService shopAccountService) {
+    super(tranHeaderService, authProvider, partTranService, tranHeaderRepository, shopAccountService);
   }
 
   @Override

@@ -1,13 +1,11 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 
 @Data
-@Builder
-public class SecondaryTransactions {
+@EqualsAndHashCode(callSuper = true)
+public class SecondaryTransaction extends SecondaryTransactionBase{
     private ShopAccount account;
-    private Double amount;
-    private String description;
 }

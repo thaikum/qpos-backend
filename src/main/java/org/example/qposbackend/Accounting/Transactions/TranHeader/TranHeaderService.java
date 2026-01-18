@@ -160,6 +160,22 @@ public class TranHeaderService {
     return tranHeader;
   }
 
+  public void declineTransactions(List<Long> idList) {
+    UserShop userShop =
+        auditorAware
+            .getCurrentAuditor()
+            .orElseThrow(() -> new NoSuchElementException("User not logged in."));
+
+    List<TranHeader> tranHeaders = tranHeaderRepository.findAllById(idList);
+    tranHeaders.forEach(
+        tranHeader -> {
+          tranHeader.setStatus(TransactionStatus.DECLINED);
+          tranHeader.setRejectedDate(LocalDate.now(ZoneId.of(TIME_ZONE)));
+          tranHeader.setRejectedBy(userShop);
+        });
+    tranHeaderRepository.saveAll(tranHeaders);
+  }
+
   public TranHeader createTransactions(TranHeaderDTO tranHeaderDTO) {
     try {
       UserShop userShop =
@@ -172,7 +188,8 @@ public class TranHeaderService {
               .postedBy(userShop)
               .postedDate(
                   Objects.requireNonNullElse(
-                      tranHeaderDTO.postedDate(), dateService.getCurrentSystemDate(userShop.getShop())))
+                      tranHeaderDTO.postedDate(),
+                      dateService.getCurrentSystemDate(userShop.getShop())))
               .status(TransactionStatus.UNVERIFIED)
               .build();
 

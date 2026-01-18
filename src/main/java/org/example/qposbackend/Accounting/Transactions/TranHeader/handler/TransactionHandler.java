@@ -16,7 +16,10 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepo
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TransactionCategory;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTran;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTranRequest;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
+import org.example.qposbackend.Accounting.shopAccount.ShopAccountService;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,7 @@ public abstract class TransactionHandler {
   private final AuthUserShopProvider authProvider;
   private final PartTranService partTranService;
   private final TranHeaderRepository tranHeaderRepository;
+  private final ShopAccountService shopAccountService;
 
   public abstract TransactionCategory getCategory();
 
@@ -37,47 +41,59 @@ public abstract class TransactionHandler {
     return getPrimaryTranType() == DEBIT ? CREDIT : DEBIT;
   }
 
-  public TranHeader getTranHeader(HandlerTran handlerTran) {
+  public TranHeader getTranHeader(HandlerTranRequest request) {
     UserShop userShop = authProvider.getCurrentUserShop();
+
     TranHeader tranHeader =
-        tranHeaderService.createBaseTranHeader(handlerTran.getPostedDate(), userShop);
-    tranHeader.setStatus(TransactionStatus.UNVERIFIED);
-    tranHeader.setDescription(handlerTran.getDescription());
-    tranHeader.setTotalAmount(handlerTran.getTotalAmount());
+        TranHeader.builder()
+            .postedDate(request.getPostedDate())
+            .postedBy(userShop)
+            .verifiedBy(userShop)
+            .status(TransactionStatus.UNVERIFIED)
+            .totalAmount(request.getTotalAmount())
+            .description(request.getDescription())
+            .tranCategory(getCategory())
+            .shop(userShop.getShop())
+            .build();
+
     List<PartTran> partTrans = new ArrayList<>();
-    partTrans.add(getPrimaryPartTran(handlerTran));
-    partTrans.addAll(getSecondaryPartTrans(handlerTran));
+    partTrans.add(getPrimaryPartTran(request));
+    partTrans.addAll(getSecondaryPartTrans(request));
     tranHeader.setPartTrans(partTrans);
     return tranHeader;
   }
 
   @Transactional
-  public TranHeader createAndPersistTranHeader(HandlerTran handlerTran) {
+  public TranHeader createAndPersistTranHeader(HandlerTranRequest handlerTran) {
     TranHeader tranHeader = getTranHeader(handlerTran);
     return tranHeaderRepository.save(tranHeader);
   }
 
-  private PartTran getPrimaryPartTran(HandlerTran handlerTran) {
-    PartTran partTran = partTranService.generatePartTran(
-        getPrimaryTranType(),
-        handlerTran.getTotalAmount(),
-        handlerTran.getDescription(),
-        handlerTran.getPrimaryAccount(),
-        1);
+  private PartTran getPrimaryPartTran(HandlerTranRequest handlerTran) {
+    ShopAccount ac = shopAccountService.getShopAccountById(handlerTran.getPrimaryAccountId());
+    PartTran partTran =
+        partTranService.generatePartTran(
+            getPrimaryTranType(),
+            handlerTran.getTotalAmount(),
+            handlerTran.getDescription(),
+            ac,
+            1);
     partTran.setIsPrimary(true);
     return partTran;
   }
 
-  private List<PartTran> getSecondaryPartTrans(HandlerTran handlerTran) {
+  private List<PartTran> getSecondaryPartTrans(HandlerTranRequest handlerTran) {
     return handlerTran.getSecondaryTransactions().stream()
         .map(
-            sec ->
-                partTranService.generatePartTran(
-                    getSecondaryTranType(),
-                    sec.getAmount(),
-                    firstNonNullString(sec.getDescription(), handlerTran.getDescription()),
-                    sec.getAccount(),
-                    2))
+            sec -> {
+              ShopAccount ac = shopAccountService.getShopAccountById(sec.getAccountId());
+              return partTranService.generatePartTran(
+                  getSecondaryTranType(),
+                  sec.getAmount(),
+                  firstNonNullString(sec.getDescription(), handlerTran.getDescription()),
+                  ac,
+                  2);
+            })
         .toList();
   }
 

@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PrivilegesService {
     private final PrivilegeRepository privilegeRepository;
 
@@ -26,7 +25,6 @@ public class PrivilegesService {
                 newPrivileges.add(Privilege.builder().privilege(privilegesEnum.name()).build());
             }
         }
-        log.info("Privileges are: {}", newPrivileges);
         privilegeRepository.saveAll(newPrivileges);
     }
 }

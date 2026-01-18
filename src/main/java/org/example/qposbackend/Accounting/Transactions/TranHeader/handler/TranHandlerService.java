@@ -10,7 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepository;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TransactionCategory;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.IStatisticsReport;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.TransactionsStatistics;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTran;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTranRequest;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.mappers.DataTransformers;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
@@ -25,12 +28,12 @@ public class TranHandlerService implements ITransactionHandler {
   private final TranHeaderRepository tranHeaderRepository;
   private final AuthUserShopProvider authProvider;
 
-  public TranHeader createTransaction(HandlerTran handlerTran) {
-    TransactionHandler handler = handlers.get(handlerTran.getCategory().name());
+  public TranHeader createTransaction(HandlerTranRequest request) {
+    TransactionHandler handler = handlers.get(request.getCategory().name());
     if (handler == null) {
       throw new UnsupportedOperationException("Transaction category not found");
     }
-    return handler.createAndPersistTranHeader(handlerTran);
+    return handler.createAndPersistTranHeader(request);
   }
 
   public List<HandlerTran> getAllTransactionsByDate(
@@ -40,14 +43,36 @@ public class TranHandlerService implements ITransactionHandler {
       TransactionStatus status) {
     Shop shop = authProvider.getCurrentShop();
     String cat = category.map(Enum::name).orElse(null);
-
     List<TranHeader> transactions =
-        tranHeaderRepository.findAllByStatusPostedByAndDateBetweenAndStatus(
+        tranHeaderRepository.findTransactionsCustom(
             shop.getId(), status.name(), start, endDate, cat);
 
-    log.info("Dates are {} and {} and transactions are: {}", start, endDate, transactions);
-
     return transactions.stream().map(DataTransformers::tranHeaderToHandlerTran).toList();
+  }
+
+  public TransactionsStatistics getStatistics(
+      LocalDate start,
+      LocalDate endDate,
+      Optional<TransactionCategory> category) {
+
+    Shop shop = authProvider.getCurrentShop();
+    String cat = category.map(Enum::name).orElse(null);
+    List<IStatisticsReport> statistics =
+        tranHeaderRepository.getTransactionStatistics(
+            shop.getId(), start, endDate, cat);
+
+    TransactionsStatistics stat = new TransactionsStatistics();
+    for (IStatisticsReport report : statistics) {
+      log.info("Report: {}, {}", report.getStatus(), report.getTotalCount());
+      switch (report.getStatus()) {
+        case VERIFIED -> stat.setTotalVerified(report.getTotalCount());
+        case UNVERIFIED -> stat.setTotalUnverified(report.getTotalCount());
+        case DECLINED -> stat.setTotalDeclined(report.getTotalCount());
+        case POSTED -> stat.setTotalPosted(report.getTotalCount());
+        default -> throw new IllegalStateException("Unexpected value: " + report.getStatus());
+      }
+    }
+    return stat;
   }
 
   @Override
