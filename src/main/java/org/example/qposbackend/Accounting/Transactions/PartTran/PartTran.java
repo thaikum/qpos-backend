@@ -30,4 +30,5 @@ public class PartTran{
     @ManyToOne
     @JoinColumn()
     private ShopAccount shopAccount;
+    private Boolean isPrimary;
 }

@@ -3,7 +3,6 @@ package org.example.qposbackend.Authorization.User;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.qposbackend.Authorization.Roles.SystemRole;
 import org.example.qposbackend.Authorization.Roles.SystemRoleRepository;
 import org.example.qposbackend.Authorization.SystemUserDetails.SystemUserDetails;
@@ -30,7 +29,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserService {
   private final JwtUtil jwtUtil;
   private final UserRepository userRepository;
@@ -125,10 +123,7 @@ public class UserService {
             .isLoggedIn(false)
             .build();
 
-    User savedUser = userRepository.save(user);
-    log.info("User created successfully with email: {}", savedUser.getEmail());
-
-    return savedUser;
+      return userRepository.save(user);
   }
 
   public Optional<User> searchUser(String value) {
@@ -158,7 +153,6 @@ public class UserService {
               .build();
 
       userRepository.save(user);
-      log.info("Initial user created");
     }
   }
 }
