@@ -2,6 +2,8 @@ package org.example.qposbackend.Accounting.Transactions.TranHeader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.TranHeaderResponseDTO;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.mappers.TranHeaderMapper;
 import org.example.qposbackend.DTOs.DataResponse;
 import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.MessageResponse;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RequestMapping("transactions")
 @Slf4j
@@ -57,5 +60,23 @@ public class TranHeaderController {
   public ResponseEntity<MessageResponse> declineTranHeaders(@RequestBody List<Long> ids) {
     tranHeaderService.declineTransactions(ids);
     return ResponseEntity.ok(new MessageResponse("Transaction verified successfully"));
+  }
+
+  @GetMapping("{id}")
+  public ResponseEntity<DataResponse> getTransaction(@PathVariable Long id) {
+    try {
+      Optional<TranHeader> tranHeader = tranHeaderRepository.findById(id);
+      if (tranHeader.isPresent()) {
+        TranHeaderResponseDTO responseDTO = TranHeaderMapper.toResponseDTO(tranHeader.get());
+        return ResponseEntity.ok(new DataResponse(responseDTO, null));
+      } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(new DataResponse(null, "Transaction not found"));
+      }
+    } catch (Exception e) {
+      log.error("Error fetching transaction: ", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(new DataResponse(null, e.getMessage()));
+    }
   }
 }

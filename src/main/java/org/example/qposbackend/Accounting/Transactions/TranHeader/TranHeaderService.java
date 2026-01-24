@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTran;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.data.SimpleJournal;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.data.TranHeaderResponseDTO;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.mappers.TranHeaderMapper;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
@@ -217,8 +219,7 @@ public class TranHeaderService {
     }
   }
 
-  public List<TransactionDTO> fetchTransactionsByRange(DateRange range, String status) {
-    List<TransactionDTO> transactionDTOList = new ArrayList<>();
+  public List<TranHeaderResponseDTO> fetchTransactionsByRange(DateRange range, String status) {
     UserShop userShop =
         auditorAware
             .getCurrentAuditor()
@@ -227,34 +228,9 @@ public class TranHeaderService {
         tranHeaderRepository.findAllByStatusAndPostedDateBetween(
             userShop.getShop().getId(), status, range.start(), range.end());
 
-    for (TranHeader tranHeader : tranHeaders) {
-      List<PartTran> partTrans = tranHeader.getPartTrans();
-      log.info("Part trans size is: {} ", partTrans.size());
-      if (!partTrans.isEmpty()) {
-        for (PartTran partTran : partTrans) {
-          TransactionDTO transactionDTO =
-              TransactionDTO.builder()
-                  .tranId(tranHeader.getTranId())
-                  .tranDate(tranHeader.getCreationTimestamp())
-                  .tranAmount(partTran.getAmount())
-                  .tranStatus(tranHeader.getStatus().name())
-                  .updatedBy(
-                      Objects.isNull(tranHeader.getLastModifiedBy())
-                          ? null
-                          : tranHeader.getLastModifiedBy().getUser().getEmail())
-                  .accountName(
-                      Objects.isNull(partTran.getShopAccount())
-                          ? null
-                          : partTran.getShopAccount().getAccountName())
-                  .tranType(partTran.getTranType())
-                  .tranParticulars(partTran.getTranParticulars())
-                  .build();
-
-          transactionDTOList.add(transactionDTO);
-        }
-      }
-    }
-    return transactionDTOList;
+    return tranHeaders.stream()
+        .map(TranHeaderMapper::toResponseDTO)
+        .toList();
   }
 
   public TranHeader createBaseTranHeader(LocalDate date, UserShop userShop) {
