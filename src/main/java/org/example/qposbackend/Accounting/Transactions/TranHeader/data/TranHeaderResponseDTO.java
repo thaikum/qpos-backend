@@ -49,6 +49,7 @@ public class TranHeaderResponseDTO {
         private Character tranType;
         private Double amount;
         private String tranParticulars;
+        private String accountName;
         private Boolean isPrimary;
     }
 }

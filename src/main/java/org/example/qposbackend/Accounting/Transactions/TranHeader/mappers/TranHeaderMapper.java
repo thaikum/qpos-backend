@@ -85,12 +85,18 @@ public class TranHeaderMapper {
             return null;
         }
         
+        String accountName = null;
+        if (partTran.getShopAccount() != null) {
+            accountName = partTran.getShopAccount().getAccountName();
+        }
+        
         return TranHeaderResponseDTO.PartTranInfo.builder()
                 .id(partTran.getId())
                 .partTranNumber(partTran.getPartTranNumber())
                 .tranType(partTran.getTranType())
                 .amount(partTran.getAmount())
                 .tranParticulars(partTran.getTranParticulars())
+                .accountName(accountName)
                 .isPrimary(partTran.getIsPrimary())
                 .build();
     }

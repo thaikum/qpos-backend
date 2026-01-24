@@ -12,6 +12,7 @@ import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.springframework.stereotype.Service;
 
 import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.CREDIT;
+import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.DEBIT;
 
 @Getter
 @Setter
@@ -31,6 +32,6 @@ public class OverageTransactionHandler extends TransactionHandler {
 
   @Override
   public char getPrimaryTranType() {
-    return CREDIT;
+    return DEBIT;
   }
 }

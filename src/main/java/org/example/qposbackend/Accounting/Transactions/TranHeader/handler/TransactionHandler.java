@@ -15,7 +15,6 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderRepository;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TransactionCategory;
-import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTran;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTrans.HandlerTranRequest;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
@@ -86,7 +85,7 @@ public abstract class TransactionHandler {
     return handlerTran.getSecondaryTransactions().stream()
         .map(
             sec -> {
-              ShopAccount ac = shopAccountService.getShopAccountById(sec.getAccountId());
+              ShopAccount ac = shopAccountService.getShopAccountById(sec.getShopAccountId());
               return partTranService.generatePartTran(
                   getSecondaryTranType(),
                   sec.getAmount(),
