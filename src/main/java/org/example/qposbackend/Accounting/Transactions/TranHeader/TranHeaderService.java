@@ -190,8 +190,7 @@ public class TranHeaderService {
               .postedBy(userShop)
               .postedDate(
                   Objects.requireNonNullElse(
-                      tranHeaderDTO.postedDate(),
-                      dateService.getCurrentSystemDate(userShop.getShop())))
+                      tranHeaderDTO.postedDate(), dateService.getCurrentSystemDate(userShop.getShop())))
               .status(TransactionStatus.UNVERIFIED)
               .build();
 
