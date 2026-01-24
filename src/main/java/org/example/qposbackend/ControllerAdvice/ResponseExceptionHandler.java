@@ -3,6 +3,7 @@ package org.example.qposbackend.ControllerAdvice;
 import java.nio.file.AccessDeniedException;
 import java.util.NoSuchElementException;
 import org.example.qposbackend.DTOs.MessageResponse;
+import org.example.qposbackend.Exceptions.EndOfDayException;
 import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
@@ -29,8 +30,8 @@ public class ResponseExceptionHandler {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
   }
 
-  @ExceptionHandler(NotAcceptableException.class)
-  public ResponseEntity<MessageResponse> handleNotAcceptableException(NotAcceptableException ex) {
+  @ExceptionHandler({NotAcceptableException.class, EndOfDayException.class})
+  public ResponseEntity<MessageResponse> handleNotAcceptableException(RuntimeException ex) {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
   }
 

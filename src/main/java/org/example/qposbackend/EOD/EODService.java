@@ -117,7 +117,6 @@ public class EODService {
       CurAssets allTransactions = getCashAndMobileDebits(userShop.getShop().getId(), eod.getDate());
 
       double totalAmount = allTransactions.cashTotal + allTransactions.mobileTotal;
-      System.out.println("Non sale are: " + totalAmount);
 
       double expectedTotal = previousDayTotal + totalAmount + endOfDayDTO.totalRecoveredDebt();
 

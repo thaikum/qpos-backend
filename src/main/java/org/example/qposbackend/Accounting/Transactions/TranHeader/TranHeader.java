@@ -40,4 +40,8 @@ public class TranHeader extends IntegrityAttributes{
     private UserShop rejectedBy;
     @ManyToOne
     private Shop shop;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionCategory tranCategory;
+    private String description;
 }

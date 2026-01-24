@@ -105,6 +105,10 @@ public class ShopAccountService {
     shopAccountRepository.updateBalance(shop, account, amount);
   }
 
+  public ShopAccount getShopAccountById(Long id){
+    return shopAccountRepository.findById(id).orElseThrow(()->new NoSuchElementException("Shop account not found"));
+  }
+
   public ShopAccountDto getShopAccount(Long id) {
     UserShop userShop =
         auditorAware

@@ -31,18 +31,6 @@ public class AuthorityBasedFieldSerializer extends StdSerializer<Object> {
 
     @Override
     public void serialize(Object value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        // Retrieve field annotation from serialization context
-//        Field field = (Field) gen.getOutputContext().getCurrentValue();
-//        if (field != null) {
-//            HideUnlessAuthorized annotation = field.getAnnotation(HideUnlessAuthorized.class);
-//            if (annotation != null && !hasRequiredAuthorities(annotation.value())) {
-//                // Field should be hidden, write null
-//                gen.writeNull();
-//                gen.writeEndObject();
-//                return;
-//            }
-//        }
-        // Field should be included, serialize normally
         if (Objects.isNull(value)) {
             gen.writeNull();
         } else {

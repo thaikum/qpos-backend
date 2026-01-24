@@ -2,6 +2,7 @@ package org.example.qposbackend.EOD;
 
 import lombok.RequiredArgsConstructor;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
+import org.example.qposbackend.Exceptions.EndOfDayException;
 import org.example.qposbackend.shop.Shop;
 import org.springframework.stereotype.Service;
 
@@ -25,9 +26,9 @@ public class EODDateService {
     if (localDate.equals(LocalDate.now(ZoneId.of(TIME_ZONE)))) {
       return localDate;
     } else {
-      throw new RuntimeException(
+      throw new EndOfDayException(
           String.format(
-              "Your system date %s does not match the actual date. Perform EOD to proceed!",
+              "Your system date %s, does not match the actual date. Perform EOD to proceed!",
               YYYY_MM_DD.format(localDate)));
     }
   }

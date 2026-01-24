@@ -106,7 +106,6 @@ public class OfferService {
     offers.addAll(free);
 
     if (offers.isEmpty()) {
-      System.out.println("Offers is empty");
       return new OrderWithDiscountsAndAppliedOffers(order, null);
     }
 
