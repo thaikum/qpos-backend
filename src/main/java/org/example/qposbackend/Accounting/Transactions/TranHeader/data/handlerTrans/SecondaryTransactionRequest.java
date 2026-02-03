@@ -6,5 +6,5 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class SecondaryTransactionRequest extends SecondaryTransactionBase{
-    private Long accountId;
+    private Long shopAccountId;
 }

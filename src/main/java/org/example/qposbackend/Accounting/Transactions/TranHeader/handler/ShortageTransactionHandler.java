@@ -1,5 +1,6 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader.handler;
 
+import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.CREDIT;
 import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.DEBIT;
 
 import lombok.Getter;
@@ -29,6 +30,6 @@ public class ShortageTransactionHandler extends TransactionHandler{
 
     @Override
     public char getPrimaryTranType() {
-        return DEBIT;
+        return CREDIT;
     }
 }
