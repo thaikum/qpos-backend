@@ -53,9 +53,11 @@ public class InstallmentService {
                 "INST-%04d-%04d", installment.getId(), installment.getHirePurchaseRef().getId()))
         .shopName(installment.getCreatedBy().getShop().getName())
         .cashierName(installment.getCreatedBy().getUser().getFirstName())
-        .amountRemaining(installment.getHirePurchaseRef().getRemainingAmount())
+        .amountRemaining(
+            installment.getHirePurchaseRef().getRemainingAmount() - installment.getAmountPaid())
         .totalExpectedAmount(installment.getHirePurchaseRef().getExpectedTotalPay())
-        .totalPaidAmount(installment.getHirePurchaseRef().getTotalPaidAmount())
+        .totalPaidAmount(
+            installment.getHirePurchaseRef().getTotalPaidAmount() + installment.getAmountPaid())
         .installment(installment)
         .build();
   }
