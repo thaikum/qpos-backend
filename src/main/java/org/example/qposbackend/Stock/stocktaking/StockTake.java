@@ -29,10 +29,11 @@ public class StockTake extends IntegrityAttributes {
   private List<StockTakeItem> stockTakeItems;
 
   @Enumerated(EnumType.STRING)
-  @Getter(AccessLevel.NONE)
-  private StockTakeStatus status;
+  @Builder.Default
+  private StockTakeStatus status = StockTakeStatus.SCHEDULED;
 
   @Enumerated(EnumType.STRING)
+  @Column(name = "stock_take_type", length = 32)
   private StockTakeType stockTakeType;
 
   @Transient private String stockTakeValue;

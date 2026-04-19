@@ -4,5 +4,7 @@ public enum TransactionStatus {
     UNVERIFIED,
     VERIFIED,
     POSTED,
-    DECLINED
+    DECLINED,
+    /** Original journal was negated by a reversal entry; excluded from EOD cash aggregation. */
+    REVERSED
 }

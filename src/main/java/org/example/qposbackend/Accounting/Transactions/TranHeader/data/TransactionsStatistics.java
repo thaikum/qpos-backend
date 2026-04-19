@@ -10,11 +10,12 @@ public class TransactionsStatistics {
   int totalDeclined;
   int totalUnverified;
   int totalPosted;
+  int totalReversed;
 
   @Getter(AccessLevel.NONE)
   int totalTransactions;
 
   public int getTotalTransactions() {
-    return totalVerified + totalDeclined + totalUnverified + totalPosted;
+    return totalVerified + totalDeclined + totalUnverified + totalPosted + totalReversed;
   }
 }

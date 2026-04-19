@@ -21,6 +21,8 @@ import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
 import org.example.qposbackend.EOD.EODDateService;
 import org.example.qposbackend.Exceptions.NotAcceptableException;
+import org.example.qposbackend.InventoryItem.InventoryItem;
+import org.example.qposbackend.InventoryItem.InventoryItemRepository;
 import org.example.qposbackend.order.OrderRepository;
 import org.example.qposbackend.order.SaleOrder;
 import org.example.qposbackend.order.orderItem.OrderItem;
@@ -38,6 +40,7 @@ public class ReturnInwardService {
   private final ShopAccountService shopAccountService;
   private final AuthUserShopProvider authProvider;
   private final EODDateService dateService;
+  private final InventoryItemRepository inventoryItemRepository;
 
   private static final char DEBIT = 'D';
   private static final char CREDIT = 'C';
@@ -66,6 +69,10 @@ public class ReturnInwardService {
       orderItemRepository.save(orderItem);
       TranHeader tranHeader = returnItemTransactions(orderItem, returnItemRequest.quantity());
       tranHeaderService.saveAndVerifyTranHeader(tranHeader);
+
+      InventoryItem inventoryItem = orderItem.getInventoryItem();
+      inventoryItem.getPriceDetails().adjustInventoryQuantity((double) returnItemRequest.quantity());
+      inventoryItemRepository.save(inventoryItem);
     } else {
       ReturnInward returnInward = orderItem.getReturnInward();
       returnInward.setDateReturned(saleDate);

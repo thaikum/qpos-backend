@@ -14,6 +14,7 @@ import java.util.List;
 public interface HirePurchaseRepository extends JpaRepository<HirePurchase, Long> {
     List<HirePurchase> findAllByStartDateBetween(LocalDate from, LocalDate to);
     List<HirePurchase> findAllByStatusAndShopAndCustomer(HirePurchaseStatus status, Shop shop, Customer customer);
+    List<HirePurchase> findAllByStatusAndShop(HirePurchaseStatus status, Shop shop);
 
     @Modifying()
     @Query(value = "UPDATE HirePurchase set status = :status, totalPaidAmount = :totalPaidAmount where id = :id")

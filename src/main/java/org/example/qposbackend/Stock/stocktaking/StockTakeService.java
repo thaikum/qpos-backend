@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeader;
 import org.example.qposbackend.Accounting.Transactions.TranHeader.TranHeaderService;
 import org.example.qposbackend.Accounting.shopAccount.DefaultAccount;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
@@ -20,13 +21,14 @@ import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.*;
 import org.example.qposbackend.InventoryItem.InventoryItem;
 import org.example.qposbackend.InventoryItem.InventoryItemRepository;
+import org.example.qposbackend.InventoryItem.InventoryItemService;
+import org.example.qposbackend.InventoryItem.quantityAdjustment.dto.QuantityAdjustmentDto;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.Stock.stocktaking.data.*;
 import org.example.qposbackend.Stock.stocktaking.discrepancy.DiscrepancyCategorization;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItem;
 import org.example.qposbackend.Stock.stocktaking.stocktakeItem.StockTakeItemService;
-import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfigRepository;
-import org.example.qposbackend.order.OrderService;
+import org.example.qposbackend.Stock.stocktaking.stocktakeRecon.stockTakeReconTypeConfig.StockTakeReconTypeConfig;
 import org.springframework.stereotype.Service;
 
 import static org.example.qposbackend.constants.Constants.TIME_ZONE;
@@ -38,13 +40,12 @@ public class StockTakeService {
   private final SpringSecurityAuditorAware springSecurityAuditorAware;
   private final StockTakeRepository stockTakeRepository;
   private final InventoryItemRepository inventoryItemRepository;
-  private final StockTakeReconTypeConfigRepository stockTakeReconTypeConfigRepository;
-  private final OrderService orderService;
   private final TranHeaderService tranHeaderService;
   private final ShopAccountRepository shopAccountRepository;
   private final ShopAccountService shopAccountService;
   private final SpringSecurityAuditorAware auditorAware;
   private final StockTakeItemService stockTakeItemService;
+  private final InventoryItemService inventoryItemService;
 
   public List<StockTake> getStockTakes() {
     return stockTakeRepository.findAll();
@@ -110,6 +111,7 @@ public class StockTakeService {
 
   public StockTake createStockTake(
       StockTakeType stockTakeType, Set<Long> ids, Date date, UserShop userShop) {
+    Set<Long> idSet = ids == null ? Set.of() : ids;
 
     StockTake stockTake =
         StockTake.builder()
@@ -117,7 +119,8 @@ public class StockTakeService {
             .assignedUser(userShop.getUser())
             .shop(userShop.getShop())
             .stockTakeDate(date)
-            .stockTakeItems(createStockTakeList(stockTakeType, ids))
+            .status(StockTakeStatus.SCHEDULED)
+            .stockTakeItems(createStockTakeList(stockTakeType, idSet))
             .build();
 
     return stockTakeRepository.save(stockTake);
@@ -138,6 +141,13 @@ public class StockTakeService {
       inventoryItems = pickRandom(inventoryItems, n);
     }
 
+    Map<Long, AbcInventoryClassifier.AbcClass> abc =
+        switch (stockTakeType) {
+          case ABC_CLASS_A, ABC_CLASS_B, ABC_CLASS_C ->
+              AbcInventoryClassifier.classifyByStockValue(inventoryItems);
+          default -> Map.of();
+        };
+
     return inventoryItems.stream()
         .filter(
             inventoryItem ->
@@ -149,6 +159,9 @@ public class StockTakeService {
                           inventoryItem.getItem().getSubCategoryId().getCategory().getId());
                   case SUB_CATEGORY ->
                       ids.contains(inventoryItem.getItem().getSubCategoryId().getId());
+                  case ABC_CLASS_A -> abc.get(inventoryItem.getId()) == AbcInventoryClassifier.AbcClass.A;
+                  case ABC_CLASS_B -> abc.get(inventoryItem.getId()) == AbcInventoryClassifier.AbcClass.B;
+                  case ABC_CLASS_C -> abc.get(inventoryItem.getId()) == AbcInventoryClassifier.AbcClass.C;
                 })
         .map(
             item ->
@@ -161,31 +174,203 @@ public class StockTakeService {
   }
 
   @Transactional
+  public void refreshStatusAfterItemCount(Long stockTakeItemId) {
+    StockTake stockTake =
+        stockTakeRepository
+            .findByStockTakeItemId(stockTakeItemId)
+            .orElseThrow(() -> new NoSuchElementException("Stock take not found"));
+    if (stockTake.getStatus() == StockTakeStatus.SCHEDULED) {
+      stockTake.setStatus(StockTakeStatus.IN_PROGRESS);
+      stockTakeRepository.save(stockTake);
+    }
+  }
+
+  @Transactional
+  public void completeCounting(long stockTakeId) {
+    StockTake stockTake =
+        stockTakeRepository
+            .findById(stockTakeId)
+            .orElseThrow(() -> new NoSuchElementException("Stock take not found"));
+    if (stockTake.getStatus() != StockTakeStatus.SCHEDULED
+        && stockTake.getStatus() != StockTakeStatus.IN_PROGRESS) {
+      throw new IllegalStateException(
+          "Counting can only be finished while the stock take is scheduled or in progress.");
+    }
+    boolean allCounted =
+        stockTake.getStockTakeItems().stream().allMatch(i -> i.getQuantity() != null);
+    if (!allCounted) {
+      throw new IllegalStateException("Enter a counted quantity for every line before finishing.");
+    }
+    boolean anyDiff =
+        stockTake.getStockTakeItems().stream()
+            .anyMatch(i -> !Objects.equals(i.getQuantity(), i.getExpected()));
+    stockTake.setStatus(anyDiff ? StockTakeStatus.UNRECONCILED : StockTakeStatus.RECONCILED);
+    stockTakeRepository.save(stockTake);
+  }
+
+  @Transactional
   public void reconcileStockTake(StockTakeRecon stockTakeReconRequest) {
     StockTake stockTake =
-        stockTakeRepository.findById(stockTakeReconRequest.getStockTakeId()).orElseThrow();
+        stockTakeRepository
+            .findById(stockTakeReconRequest.getStockTakeId())
+            .orElseThrow(() -> new NoSuchElementException("Stock take not found"));
+    if (stockTake.getStatus() != StockTakeStatus.UNRECONCILED
+        && stockTake.getStatus() != StockTakeStatus.PARTIALLY_RECONCILED) {
+      throw new IllegalStateException(
+          "Reconciliation is only allowed when the stock take is waiting for reconciliation.");
+    }
 
     Map<Long, StockTakeItemReconDto> stockTakeItemReconDtoMap =
         stockTakeReconRequest.getStockTakeItems().stream()
             .collect(
                 Collectors.toMap(StockTakeItemReconDto::getStockTakeItemId, Function.identity()));
+
+    List<StockTakeItem> discrepant =
+        stockTake.getStockTakeItems().stream()
+            .filter(i -> !Objects.equals(i.getQuantity(), i.getExpected()))
+            .toList();
+    for (StockTakeItem item : discrepant) {
+      StockTakeItemReconDto dto = stockTakeItemReconDtoMap.get(item.getId());
+      if (dto == null || dto.getDiscrepancyCategoryList() == null) {
+        throw new IllegalArgumentException(
+            "Provide reconciliation reasons for "
+                + item.getInventoryItem().getItem().getName());
+      }
+      validateDiscrepancyAllocations(item, dto);
+    }
+
     stockTake
         .getStockTakeItems()
         .forEach(
             stockTakeItem -> {
-              var stockTakeItemReconDto = stockTakeItemReconDtoMap.get(stockTakeItem.getId());
+              StockTakeItemReconDto stockTakeItemReconDto =
+                  stockTakeItemReconDtoMap.get(stockTakeItem.getId());
               if (stockTakeItemReconDto != null) {
                 if (Objects.nonNull(stockTakeItemReconDto.getQuantity())
                     && !stockTakeItemReconDto.getQuantity().equals(stockTakeItem.getQuantity())) {
                   stockTakeItem.setQuantity(stockTakeItemReconDto.getQuantity());
                 }
-
-                List<DiscrepancyCategorization> discrepancies =
-                    stockTakeItemService.getDiscrepancyCategoryList(stockTakeItemReconDto);
-                stockTakeItem.setDiscrepancyCategorization(discrepancies);
+                if (stockTakeItemReconDto.getDiscrepancyCategoryList() != null
+                    && !stockTakeItemReconDto.getDiscrepancyCategoryList().isEmpty()) {
+                  List<DiscrepancyCategorization> discrepancies =
+                      stockTakeItemService.getDiscrepancyCategoryList(stockTakeItemReconDto);
+                  stockTakeItem.setDiscrepancyCategorization(discrepancies);
+                }
               }
             });
+
+    stockTake = stockTakeRepository.save(stockTake);
+
+    for (StockTakeItem item : stockTake.getStockTakeItems()) {
+      syncInventoryToPhysicalCount(stockTake.getId(), item);
+    }
+
+    for (StockTakeItem item : stockTake.getStockTakeItems()) {
+      if (item.getDiscrepancyCategorization() == null) {
+        continue;
+      }
+      for (DiscrepancyCategorization cat : item.getDiscrepancyCategorization()) {
+        postCategorizationAccounting(item, cat);
+      }
+    }
+
+    stockTake.setStatus(StockTakeStatus.RECONCILED);
     stockTakeRepository.save(stockTake);
+  }
+
+  private void validateDiscrepancyAllocations(
+      StockTakeItem item, StockTakeItemReconDto dto) {
+    double diff = item.getQuantity() - item.getExpected();
+    double expectedSum = Math.abs(diff);
+    double sum =
+        dto.getDiscrepancyCategoryList().stream()
+            .mapToDouble(d -> Math.abs(d.getQuantity()))
+            .sum();
+    if (Math.abs(sum - expectedSum) > 0.0001) {
+      throw new IllegalArgumentException(
+          "Allocated quantities must equal the stock difference for "
+              + item.getInventoryItem().getItem().getName());
+    }
+  }
+
+  private void syncInventoryToPhysicalCount(Long stockTakeId, StockTakeItem stockTakeItem) {
+    InventoryItem inventoryItem =
+        inventoryItemRepository
+            .findById(stockTakeItem.getInventoryItem().getId())
+            .orElseThrow();
+    double targetQty = stockTakeItem.getQuantity();
+    double delta = targetQty - inventoryItem.getQuantity();
+    if (Math.abs(delta) < 1e-6) {
+      return;
+    }
+    inventoryItemService.updateInventoryItemQuantity(
+        new QuantityAdjustmentDto(
+            targetQty, "Stock take #" + stockTakeId + " — counted quantity applied"),
+        inventoryItem.getId());
+  }
+
+  /**
+   * Account to debit vs COGS for shrinkage/write-off. Prefer {@code expenseAccount}; many setups
+   * only set {@code balancingAccount} for damaged/missing/internal use (legacy data / UI confusion).
+   * Unrecorded-sale types use {@code createSale} + balancing only — do not treat balancing as expense.
+   */
+  private ShopAccount resolveExpenseAccountForWriteOff(StockTakeReconTypeConfig cfg) {
+    if (cfg.getExpenseAccount() != null) {
+      return cfg.getExpenseAccount();
+    }
+    if (!Boolean.TRUE.equals(cfg.getCreateSale()) && cfg.getBalancingAccount() != null) {
+      return cfg.getBalancingAccount();
+    }
+    return null;
+  }
+
+  private void postCategorizationAccounting(
+      StockTakeItem stockTakeItem, DiscrepancyCategorization cat) {
+    StockTakeReconTypeConfig cfg = cat.getReconTypeConfig();
+    if (cfg == null || cat.getQuantity() == 0) {
+      return;
+    }
+    double qty = Math.abs(cat.getQuantity());
+    ShopAccount expenseSide = resolveExpenseAccountForWriteOff(cfg);
+    if (Boolean.TRUE.equals(cfg.getHasFinancialImpact()) && expenseSide != null) {
+      TranHeaderDTO journal =
+          processGoodsAccount(
+              stockTakeItem,
+              expenseSide,
+              SingleItemStockTakeRecon.builder()
+                  .stockTakeItemId(stockTakeItem.getId())
+                  .quantity(qty)
+                  .build(),
+              "Stock take — "
+                  + cfg.getStockTakeReconType().name().replace('_', ' ').toLowerCase());
+      TranHeader posted = tranHeaderService.createTransactions(journal);
+      tranHeaderService.verifyTransaction(posted);
+    } else if (Boolean.TRUE.equals(cfg.getHasFinancialImpact()) && expenseSide == null) {
+      log.warn(
+          "Stock take recon type {} has financial impact but no expense or balancing account; skipping COGS journal.",
+          cfg.getStockTakeReconType());
+    }
+    if (Boolean.TRUE.equals(cfg.getCreateSale()) && cfg.getBalancingAccount() != null) {
+      postUnrecordedSaleJournal(stockTakeItem, qty, cfg);
+    }
+  }
+
+  private void postUnrecordedSaleJournal(
+      StockTakeItem stockTakeItem, double qty, StockTakeReconTypeConfig cfg) {
+    double revenue =
+        qty * stockTakeItem.getInventoryItem().getPriceDetails().getSellingPrice();
+    ShopAccount sales = shopAccountService.getDefaultAccount(DefaultAccount.SALES_REVENUE);
+    ShopAccount balancing = cfg.getBalancingAccount();
+    String p =
+        "Stock take — unrecorded sale — "
+            + stockTakeItem.getInventoryItem().getItem().getName();
+    PartTranDTO creditSale = new PartTranDTO('C', revenue, p, sales.getId());
+    PartTranDTO debitBalancing = new PartTranDTO('D', revenue, p, balancing.getId());
+    TranHeaderDTO journal =
+        new TranHeaderDTO(
+            LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(debitBalancing, creditSale), p);
+    TranHeader posted = tranHeaderService.createTransactions(journal);
+    tranHeaderService.verifyTransaction(posted);
   }
 
   private TranHeaderDTO processGoodsAccount(
@@ -220,7 +405,8 @@ public class StockTakeService {
                 .getTotalBuyingPrice(stockTakeRecon.getQuantity()),
             particulars,
             expenseAccount.getId());
-    return new TranHeaderDTO(LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(credit, debit));
+    return new TranHeaderDTO(
+        LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(credit, debit), particulars);
   }
 
   private TranHeaderDTO processPenalty(
@@ -246,7 +432,10 @@ public class StockTakeService {
             groupItemsStockTakeRecon.getPenalty(),
             "Penalty: " + groupItemsStockTakeRecon.getDescription(),
             penaltyAccount.getId());
-    return new TranHeaderDTO(LocalDate.now(ZoneId.of(TIME_ZONE)), List.of(credit, debit));
+    return new TranHeaderDTO(
+        LocalDate.now(ZoneId.of(TIME_ZONE)),
+        List.of(credit, debit),
+        "Penalty: " + groupItemsStockTakeRecon.getDescription());
   }
 
   private Optional<StockTakeItem> getStockTakeItemFromStockTakeById(

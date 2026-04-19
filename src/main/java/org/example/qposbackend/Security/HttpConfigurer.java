@@ -126,6 +126,8 @@ public class HttpConfigurer {
                     .hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
                     .requestMatchers(HttpMethod.PUT, "transactions/verify")
                     .hasAuthority(PrivilegesEnum.VERIFY_TRANSACTION.name())
+                    .requestMatchers(HttpMethod.PUT, "transactions/reverse/**")
+                    .hasAuthority(PrivilegesEnum.VERIFY_TRANSACTION.name())
                     .requestMatchers(HttpMethod.POST, "transactions/by-range/{status}")
                     .hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
 
@@ -176,6 +178,8 @@ public class HttpConfigurer {
                     .hasAuthority(PrivilegesEnum.VIEW_STOCK_TAKE_DISCREPANCIES.name())
                     .requestMatchers(HttpMethod.POST, "stock-take/reconcile")
                     .hasAuthority(PrivilegesEnum.RECONCILE_STOCK_TAKE.name())
+                    .requestMatchers(HttpMethod.POST, "stock-take/{id}/finish-counting")
+                    .hasAuthority(PrivilegesEnum.PERFORM_STOCK_TAKE.name())
                     .requestMatchers(HttpMethod.GET, "stock-take/{id}")
                     .hasAuthority(PrivilegesEnum.VIEW_SINGLE_STOCK_TAKE.name())
                     .requestMatchers(HttpMethod.GET, "stock-take", "stock-take/get-stock-take-type")
@@ -201,6 +205,23 @@ public class HttpConfigurer {
                         HttpMethod.PUT,
                         "stock-take/recon-config/update-stock-take-type-config/{id}")
                     .hasAuthority(PrivilegesEnum.CREATE_STOCK_TAKE_RECON_TYPE_CONFIG.name())
+
+                    //  ====================== HIRE PURCHASE ========================
+                    .requestMatchers(HttpMethod.POST, "hire-purchase")
+                    .hasAnyAuthority(PrivilegesEnum.SELL_ON_HIRE_PURCHASE.name())
+                    .requestMatchers(HttpMethod.GET, "hire-purchase/pending")
+                    .hasAnyAuthority(
+                        PrivilegesEnum.SELL_ON_HIRE_PURCHASE.name(),
+                        PrivilegesEnum.VIEW_HIRE_PURCHASE_ITEMS.name())
+                    .requestMatchers(HttpMethod.GET, "hire-purchase")
+                    .hasAnyAuthority(
+                        PrivilegesEnum.SELL_ON_HIRE_PURCHASE.name(),
+                        PrivilegesEnum.VIEW_HIRE_PURCHASE_ITEMS.name())
+                    .requestMatchers(HttpMethod.GET, "hire-purchase/{id}")
+                    .hasAnyAuthority(
+                        PrivilegesEnum.SELL_ON_HIRE_PURCHASE.name(),
+                        PrivilegesEnum.ADD_INSTALLMENTS.name(),
+                        PrivilegesEnum.VIEW_HIRE_PURCHASE_ITEMS.name())
 
                     //  ====================== OTHERS ===============================
                     .requestMatchers("/users/login")

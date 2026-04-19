@@ -11,5 +11,5 @@ public interface StockTakeItemRepository extends JpaRepository<StockTakeItem, Lo
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("update StockTakeItem sti set sti.quantity = :quantity where sti.id = :id")
   @Transactional
-  int updateStockTakeItemQuantityById(Long id, Integer quantity);
+  int updateStockTakeItemQuantityById(Long id, Double quantity);
 }

@@ -40,7 +40,17 @@ public class EODDateService {
       EOD eod = eodOptional.get();
       return eod.getDate().plusDays(1);
     } else {
-      return LocalDate.now();
+      return LocalDate.now(ZoneId.of(TIME_ZONE));
     }
+  }
+
+  public EodShopDateStatus getShopDateStatus() {
+    Shop shop = authProvider.getCurrentShop();
+    LocalDate systemDate = getCurrentSystemDate(shop);
+    LocalDate shopCalendarDate = LocalDate.now(ZoneId.of(TIME_ZONE));
+    LocalDate lastClosed =
+        eodRepository.findLastEODAndShop(shop.getId()).map(EOD::getDate).orElse(null);
+    boolean needsEod = !systemDate.equals(shopCalendarDate);
+    return new EodShopDateStatus(systemDate, shopCalendarDate, lastClosed, needsEod);
   }
 }

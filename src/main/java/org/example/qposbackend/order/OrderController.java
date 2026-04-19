@@ -8,6 +8,7 @@ import org.example.qposbackend.DTOs.DataResponse;
 import org.example.qposbackend.DTOs.DateRange;
 import org.example.qposbackend.DTOs.MessageResponse;
 import org.example.qposbackend.DTOs.ReturnItemRequest;
+import org.example.qposbackend.order.data.SalesStatisticsRequest;
 import org.example.qposbackend.order.receipt.ReceiptData;
 import org.example.qposbackend.order.orderItem.ReturnInward.ReturnInwardService;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,18 @@ public class OrderController {
   @PostMapping("get-by-range")
   public ResponseEntity<DataResponse> fetchByDateRange(@RequestBody DateRange dateRange) {
     return ResponseEntity.ok(new DataResponse(orderService.fetchByDateRange(dateRange), null));
+  }
+
+  @PostMapping("get-by-range-and-product")
+  public ResponseEntity<DataResponse> fetchByDateRangeAndProduct(
+      @RequestBody DateRange dateRange, @RequestParam(required = false) String productName) {
+    return ResponseEntity.ok(
+        new DataResponse(orderService.fetchByDateRangeAndProduct(dateRange, productName), null));
+  }
+
+  @PostMapping("statistics")
+  public ResponseEntity<DataResponse> getSalesStatistics(@RequestBody SalesStatisticsRequest request) {
+    return ResponseEntity.ok(new DataResponse(orderService.getSalesStatistics(request), null));
   }
 
   @PostMapping("return-item")

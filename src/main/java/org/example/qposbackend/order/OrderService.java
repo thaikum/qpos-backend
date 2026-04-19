@@ -27,6 +27,9 @@ import org.example.qposbackend.InventoryItem.PriceDetails.Price.Price;
 import org.example.qposbackend.InventoryItem.PriceDetails.Price.PriceRepository;
 import org.example.qposbackend.OffersAndPromotions.Offers.OfferService;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
+import org.example.qposbackend.order.data.SalesItemSummary;
+import org.example.qposbackend.order.data.SalesStatisticsRequest;
+import org.example.qposbackend.order.data.SalesStatisticsResponse;
 import org.example.qposbackend.order.orderItem.OrderItem;
 import org.example.qposbackend.order.receipt.ReceiptData;
 import org.example.qposbackend.order.receipt.ReceiptItem;
@@ -53,6 +56,111 @@ public class OrderService {
   public List<SaleOrder> fetchByDateRange(DateRange dateRange) {
     UserShop userShop = getCurrentUserShop();
     return fetchByShopAndDateRange(userShop.getShop(), dateRange.start(), dateRange.end());
+  }
+
+  public List<SaleOrder> fetchByDateRangeAndProduct(DateRange dateRange, String productName) {
+    UserShop userShop = getCurrentUserShop();
+    Shop shop = userShop.getShop();
+    if (productName == null || productName.isBlank()) {
+      return fetchByShopAndDateRange(shop, dateRange.start(), dateRange.end());
+    }
+    return orderRepository.fetchAllByDateRangeShopAndProductName(
+        dateRange.start(), dateRange.end(), shop.getId(), productName);
+  }
+
+  public SalesStatisticsResponse getSalesStatistics(SalesStatisticsRequest request) {
+    UserShop userShop = getCurrentUserShop();
+    Shop shop = userShop.getShop();
+    List<SaleOrder> orders = fetchByShopAndDateRange(shop, request.start(), request.end());
+
+    List<OrderItem> actualSales = new ArrayList<>();
+    List<OrderItem> returnedItems = new ArrayList<>();
+    double totalCash = 0, totalMpesa = 0, totalDebtors = 0, totalReturnedAmount = 0;
+
+    for (SaleOrder order : orders) {
+      double totalAmount = 0;
+
+      for (OrderItem item : order.getOrderItems()) {
+        double effectiveDiscount = getEffectiveDiscount(item);
+
+        if (item.getReturnInward() != null) {
+          item.setQuantity((double) item.getReturnInward().getQuantityReturned());
+          returnedItems.add(item);
+          totalReturnedAmount += item.getReturnInward().getQuantityReturned() * (item.getPrice() - effectiveDiscount);
+        } else {
+          actualSales.add(item);
+          totalAmount += item.getQuantity() * (item.getPrice() - effectiveDiscount);
+        }
+      }
+
+      double mpesa = zeroIfNull(order.getAmountInMpesa());
+      double cash = zeroIfNull(order.getAmountInCash());
+      double credit = zeroIfNull(order.getAmountInCredit());
+
+      if (cash > 0 && cash >= totalAmount) {
+        totalCash += totalAmount;
+      } else if (mpesa > 0 && mpesa >= totalAmount) {
+        totalMpesa += totalAmount;
+      } else {
+        totalMpesa += mpesa;
+        if (mpesa <= totalAmount) {
+          totalCash += totalAmount - mpesa - credit;
+          totalDebtors += credit;
+        }
+      }
+    }
+
+    String productFilter = request.productName();
+    if (productFilter != null && !productFilter.isBlank()) {
+      String lower = productFilter.toLowerCase();
+      actualSales = actualSales.stream()
+          .filter(item -> item.getInventoryItem().getItem().getName().toLowerCase().contains(lower))
+          .collect(Collectors.toList());
+      returnedItems = returnedItems.stream()
+          .filter(item -> item.getInventoryItem().getItem().getName().toLowerCase().contains(lower))
+          .collect(Collectors.toList());
+    }
+
+    return new SalesStatisticsResponse(
+        consolidateItems(actualSales),
+        consolidateItems(returnedItems),
+        totalCash,
+        totalMpesa,
+        totalDebtors,
+        totalReturnedAmount
+    );
+  }
+
+  private double getEffectiveDiscount(OrderItem item) {
+    double discountAllowed = item.getInventoryItem().getDiscountAllowed() != null
+        ? item.getInventoryItem().getDiscountAllowed() : 0;
+    boolean hasOffers = item.getOffersApplied() != null && !item.getOffersApplied().isEmpty();
+    return (discountAllowed > 0 || hasOffers) ? item.getDiscount() : 0;
+  }
+
+  private List<SalesItemSummary> consolidateItems(List<OrderItem> items) {
+    Map<Long, List<OrderItem>> grouped = items.stream()
+        .collect(Collectors.groupingBy(item -> item.getInventoryItem().getId()));
+
+    return grouped.values().stream()
+        .map(group -> {
+          OrderItem first = group.get(0);
+          double quantity = group.stream().mapToDouble(OrderItem::getQuantity).sum();
+          double price = first.getPrice();
+          double discount = group.stream().mapToDouble(this::getEffectiveDiscount).sum();
+          double total = group.stream()
+              .mapToDouble(item -> item.getQuantity() * (item.getPrice() - getEffectiveDiscount(item)))
+              .sum();
+          return new SalesItemSummary(
+              first.getInventoryItem().getId(),
+              first.getInventoryItem().getItem().getName(),
+              quantity,
+              price,
+              discount,
+              total
+          );
+        })
+        .collect(Collectors.toList());
   }
 
   public List<SaleOrder> fetchByShopAndDateRange(Shop shop, Date start, Date end) {

@@ -26,6 +26,11 @@ public class HirePurchaseController {
                 hirePurchaseService.createHirePurchaseAndPrintReceipt(request), "Lipa mdogo mdogo started"));
   }
 
+  @GetMapping("/pending")
+  public ResponseEntity<DataResponse> getAllPending() {
+    return ResponseEntity.ok(new DataResponse(hirePurchaseService.getAllPending(), null));
+  }
+
   @GetMapping
   public ResponseEntity<DataResponse> getAllHirePurchase(
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate from,

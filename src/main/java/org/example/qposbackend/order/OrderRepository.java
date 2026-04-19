@@ -28,5 +28,18 @@ public interface OrderRepository extends JpaRepository<SaleOrder, Long> {
       nativeQuery = true)
   List<SaleOrder> fetchAllSalesReturnedWithinRangeAndShop(Date start, Date end, Long shopId);
 
+  @Query(
+      value =
+          "SELECT DISTINCT so.* FROM sale_order so "
+              + "JOIN order_item oi ON so.id = oi.order_items_id "
+              + "JOIN inventory_item ii ON oi.inventory_item_id = ii.id "
+              + "JOIN item i ON ii.item_id = i.id "
+              + "WHERE so.shop_id = :shopId "
+              + "AND DATE(so.date) BETWEEN DATE(:start) AND DATE(:end) "
+              + "AND LOWER(i.name) LIKE LOWER(CONCAT('%', :productName, '%'))",
+      nativeQuery = true)
+  List<SaleOrder> fetchAllByDateRangeShopAndProductName(
+      Date start, Date end, Long shopId, String productName);
+
   Optional<SaleOrder> findByOrderItems(OrderItem orderId);
 }

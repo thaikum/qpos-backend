@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class EODController {
     private final EODService eoDService;
-    private final EODRepository eoDRepository;
+    private final EODDateService eodDateService;
 
     @PostMapping
     private ResponseEntity<MessageResponse> eod(@RequestBody EndOfDayDTO eodDTO) {
@@ -30,5 +30,10 @@ public class EODController {
     @PostMapping("/fetch-by-range")
     public ResponseEntity<DataResponse> fetchByRange(@RequestBody DateRange dateRange) {
         return ResponseEntity.ok(new DataResponse(eoDService.fetchByRange(dateRange), null));
+    }
+
+    @GetMapping("shop-date-status")
+    public ResponseEntity<DataResponse> getShopDateStatus() {
+        return ResponseEntity.ok(new DataResponse(eodDateService.getShopDateStatus(), null));
     }
 }

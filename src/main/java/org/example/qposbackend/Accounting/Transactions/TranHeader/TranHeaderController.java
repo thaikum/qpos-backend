@@ -62,6 +62,18 @@ public class TranHeaderController {
     return ResponseEntity.ok(new MessageResponse("Transaction verified successfully"));
   }
 
+  @PutMapping("reverse/{id}")
+  public ResponseEntity<MessageResponse> reverseTransaction(@PathVariable long id) {
+    try {
+      tranHeaderService.reverseTransaction(id);
+      return ResponseEntity.ok(new MessageResponse("Transaction reversed successfully"));
+    } catch (Exception e) {
+      log.error("Reverse transaction failed: ", e);
+      return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+          .body(new MessageResponse(e.getMessage()));
+    }
+  }
+
   @GetMapping("{id}")
   public ResponseEntity<DataResponse> getTransaction(@PathVariable Long id) {
     try {

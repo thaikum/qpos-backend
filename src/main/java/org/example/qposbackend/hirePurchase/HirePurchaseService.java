@@ -126,6 +126,13 @@ public class HirePurchaseService {
         .toList();
   }
 
+  public List<HirePurchaseResponse> getAllPending() {
+    Shop shop = authProvider.getCurrentShop();
+    return hirePurchaseRepository.findAllByStatusAndShop(HirePurchaseStatus.ACTIVE, shop).stream()
+        .map(hirePurchaseMapper::toResponse)
+        .toList();
+  }
+
   public HirePurchaseResponse getById(Long id) {
     return hirePurchaseRepository
         .findById(id)

@@ -25,7 +25,7 @@ public class ShortageTransactionHandler extends TransactionHandler{
 
     @Override
     public TransactionCategory getCategory() {
-        return TransactionCategory.OVERAGE;
+        return TransactionCategory.SHORTAGE;
     }
 
     @Override

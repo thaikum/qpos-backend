@@ -110,5 +110,13 @@ public class StockTakeController {
     }
   }
 
-
+  @PostMapping("{id}/finish-counting")
+  public ResponseEntity<MessageResponse> finishCounting(@PathVariable long id) {
+    try {
+      stockTakeService.completeCounting(id);
+      return ResponseEntity.ok(new MessageResponse("Counting marked complete"));
+    } catch (Exception e) {
+      throw new GenericRuntimeException(e.getMessage());
+    }
+  }
 }

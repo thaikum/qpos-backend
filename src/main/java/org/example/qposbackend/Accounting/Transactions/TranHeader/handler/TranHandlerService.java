@@ -17,6 +17,7 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTr
 import org.example.qposbackend.Accounting.Transactions.TranHeader.mappers.DataTransformers;
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
+import org.example.qposbackend.EOD.EODDateService;
 import org.example.qposbackend.shop.Shop;
 import org.springframework.stereotype.Service;
 
@@ -27,8 +28,12 @@ public class TranHandlerService implements ITransactionHandler {
   private final Map<String, TransactionHandler> handlers = new HashMap<>();
   private final TranHeaderRepository tranHeaderRepository;
   private final AuthUserShopProvider authProvider;
+  private final EODDateService eodDateService;
 
   public TranHeader createTransaction(HandlerTranRequest request) {
+    if (request.getPostedDate() == null) {
+      request.setPostedDate(eodDateService.getCurrentSystemDate(authProvider.getCurrentShop()));
+    }
     TransactionHandler handler = handlers.get(request.getCategory().name());
     if (handler == null) {
       throw new UnsupportedOperationException("Transaction category not found");
@@ -69,6 +74,7 @@ public class TranHandlerService implements ITransactionHandler {
         case UNVERIFIED -> stat.setTotalUnverified(report.getTotalCount());
         case DECLINED -> stat.setTotalDeclined(report.getTotalCount());
         case POSTED -> stat.setTotalPosted(report.getTotalCount());
+        case REVERSED -> stat.setTotalReversed(report.getTotalCount());
         default -> throw new IllegalStateException("Unexpected value: " + report.getStatus());
       }
     }

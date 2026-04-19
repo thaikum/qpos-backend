@@ -1,5 +1,7 @@
 package org.example.qposbackend.EOD;
 
+import static org.example.qposbackend.constants.Constants.TIME_ZONE;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -74,7 +76,7 @@ public class EODService {
     CurAssets totalSales =
         getTodaySales(
             previousEodOpt
-                .orElse(EOD.builder().date(LocalDate.now()).build())
+                .orElse(EOD.builder().date(LocalDate.now(ZoneId.of(TIME_ZONE))).build())
                 .getDate()
                 .plusDays(1));
     double totalCashSale = totalSales.cashTotal;
@@ -103,7 +105,8 @@ public class EODService {
       EOD previousEod = previousEodOpt.get();
 
       log.info("EOD previousEod: {}", previousEod);
-      long dateDiff = ChronoUnit.DAYS.between(LocalDate.now(), previousEod.getDate());
+      long dateDiff =
+          ChronoUnit.DAYS.between(LocalDate.now(ZoneId.of(TIME_ZONE)), previousEod.getDate());
 
       if (dateDiff == 0) {
         throw new NotAcceptableException("End of Day cannot be done twice in the same day");
@@ -156,13 +159,13 @@ public class EODService {
   private CurAssets getCashAndMobileDebits(Long shopId, LocalDate localDate) {
     List<PartTran> cashTransactions =
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
-            shopId, localDate, LocalDate.now(), "CASH");
+            shopId, localDate, LocalDate.now(ZoneId.of(TIME_ZONE)), "CASH");
 
     eodTrasactions.addAll(cashTransactions);
 
     List<PartTran> mobileMoneyTransactions =
         partTranRepository.findAllVerifiedByVerifiedDateBetweenAndAccountName(
-            shopId, localDate, LocalDate.now(), "MOBILE MONEY");
+            shopId, localDate, LocalDate.now(ZoneId.of(TIME_ZONE)), "MOBILE MONEY");
 
     eodTrasactions.addAll(mobileMoneyTransactions);
 

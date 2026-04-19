@@ -5,5 +5,6 @@ import java.util.List;
 
 public record TranHeaderDTO(
         LocalDate postedDate,
-        List<PartTranDTO> partTrans
+        List<PartTranDTO> partTrans,
+        String description
 ) {}

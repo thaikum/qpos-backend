@@ -1,5 +1,6 @@
 package org.example.qposbackend.Accounting.shopAccount;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.qposbackend.Accounting.Accounts.Account;
@@ -13,6 +14,7 @@ import org.example.qposbackend.shop.Shop;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ShopAccount extends IntegrityAttributes {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

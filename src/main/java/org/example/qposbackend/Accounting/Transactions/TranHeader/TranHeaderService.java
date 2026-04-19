@@ -15,6 +15,7 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.mappers.TranHe
 import org.example.qposbackend.Accounting.Transactions.TransactionStatus;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccount;
 import org.example.qposbackend.Accounting.shopAccount.ShopAccountRepository;
+import org.example.qposbackend.shop.Shop;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.example.qposbackend.Authorization.User.userShop.UserShop;
 import org.example.qposbackend.DTOs.DateRange;
@@ -22,7 +23,7 @@ import org.example.qposbackend.DTOs.PartTranDTO;
 import org.example.qposbackend.DTOs.TranHeaderDTO;
 import org.example.qposbackend.DTOs.TransactionDTO;
 import org.example.qposbackend.EOD.EODDateService;
-import org.example.qposbackend.EOD.EODService;
+import org.example.qposbackend.Exceptions.NotAcceptableException;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +71,7 @@ public class TranHeaderService {
             .status(TransactionStatus.UNVERIFIED)
             .postedDate(dateService.getCurrentSystemDate(userShop.getShop()))
             .postedBy(userShop)
+            .shop(userShop.getShop())
             .partTrans(partTrans)
             .build();
 
@@ -150,6 +152,7 @@ public class TranHeaderService {
   public TranHeader verifyTranAndReturn(TranHeader tranHeader) {
     tranHeader.setStatus(TransactionStatus.VERIFIED);
     tranHeader.setVerifiedBy(authProvider.getCurrentUserShop());
+    tranHeader.setVerifiedDate(LocalDate.now(ZoneId.of(TIME_ZONE)));
     List<Long> ids = new ArrayList<>();
     Map<Long, Double> shopAccountMap = new HashMap<>();
 
@@ -188,9 +191,11 @@ public class TranHeaderService {
       TranHeader tranHeader =
           TranHeader.builder()
               .postedBy(userShop)
+              .shop(userShop.getShop())
               .postedDate(
                   Objects.requireNonNullElse(
                       tranHeaderDTO.postedDate(), dateService.getCurrentSystemDate(userShop.getShop())))
+              .description(tranHeaderDTO.description())
               .status(TransactionStatus.UNVERIFIED)
               .build();
 
@@ -240,5 +245,98 @@ public class TranHeaderService {
         .status(TransactionStatus.VERIFIED)
         .verifiedDate(date)
         .build();
+  }
+
+  /**
+   * Posts an opposite journal that nets out balances, then marks the original header as {@link
+   * TransactionStatus#REVERSED} so its lines are not treated as active cash movement (e.g. EOD
+   * queries only include {@code VERIFIED} headers).
+   */
+  @Transactional
+  public TranHeader reverseTransaction(long tranId) {
+    UserShop userShop = authProvider.getCurrentUserShop();
+    TranHeader original =
+        tranHeaderRepository
+            .findById(tranId)
+            .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
+
+    Shop effectiveShop = resolveShopForHeader(original);
+    if (effectiveShop == null
+        || !effectiveShop.getId().equals(userShop.getShop().getId())) {
+      throw new NotAcceptableException("Transaction does not belong to this shop");
+    }
+    if (original.getStatus() == TransactionStatus.REVERSED) {
+      throw new NotAcceptableException("Transaction is already reversed");
+    }
+    if (original.getStatus() != TransactionStatus.VERIFIED
+        && original.getStatus() != TransactionStatus.POSTED) {
+      throw new NotAcceptableException("Only verified or posted transactions can be reversed");
+    }
+
+    original.getPartTrans().size(); // touch collection while session is open
+
+    List<PartTran> reversalLines = new ArrayList<>();
+    int seq = 0;
+    for (PartTran pt : original.getPartTrans()) {
+      Character tt = pt.getTranType();
+      boolean credit = tt != null && (tt == 'C' || tt == 'c');
+      char opposite = credit ? 'D' : 'C';
+      ShopAccount sa =
+          shopAccountRepository
+              .findById(pt.getShopAccount().getId())
+              .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+      String particulars =
+          "Reversal of tran #" + tranId + ": " + Objects.toString(pt.getTranParticulars(), "");
+      reversalLines.add(
+          PartTran.builder()
+              .partTranNumber(seq++)
+              .tranType(opposite)
+              .amount(pt.getAmount())
+              .tranParticulars(particulars)
+              .shopAccount(sa)
+              .build());
+    }
+
+    LocalDate reversalDate = LocalDate.now(ZoneId.of(TIME_ZONE));
+    TranHeader reversal =
+        TranHeader.builder()
+            .postedDate(reversalDate)
+            .postedBy(userShop)
+            .shop(userShop.getShop())
+            .status(TransactionStatus.UNVERIFIED)
+            .description("Reversal of transaction #" + tranId)
+            .tranCategory(original.getTranCategory())
+            .totalAmount(original.getTotalAmount())
+            .partTrans(reversalLines)
+            .build();
+
+    reversal = tranHeaderRepository.save(reversal);
+    verifyTranAndReturn(reversal);
+
+    original.setStatus(TransactionStatus.REVERSED);
+    tranHeaderRepository.save(original);
+
+    return reversal;
+  }
+
+  /**
+   * {@link TranHeader#getShop()} is set for handler-driven journals; older/manual rows may only have
+   * {@link TranHeader#getPostedBy()} or shop on line items.
+   */
+  private Shop resolveShopForHeader(TranHeader header) {
+    if (header.getShop() != null) {
+      return header.getShop();
+    }
+    if (header.getPostedBy() != null && header.getPostedBy().getShop() != null) {
+      return header.getPostedBy().getShop();
+    }
+    if (header.getPartTrans() != null) {
+      for (PartTran pt : header.getPartTrans()) {
+        if (pt.getShopAccount() != null && pt.getShopAccount().getShop() != null) {
+          return pt.getShopAccount().getShop();
+        }
+      }
+    }
+    return null;
   }
 }
