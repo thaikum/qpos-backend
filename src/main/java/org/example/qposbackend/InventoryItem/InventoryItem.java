@@ -1,5 +1,6 @@
 package org.example.qposbackend.InventoryItem;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -14,6 +15,8 @@ import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Suppliers.Supplier;
 import org.example.qposbackend.shop.Shop;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Data
 @Builder
@@ -27,7 +30,6 @@ public class InventoryItem {
   @OneToOne private Item item;
 
   @Transient
-  @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
   private Integer quantity;
 
@@ -41,54 +43,49 @@ public class InventoryItem {
   private List<Supplier> supplier;
 
   @Transient
-  @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
   private Double buyingPrice;
 
   @Transient
-  @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
   private Double sellingPrice;
 
-  @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-  private PriceDetails priceDetails;
-
   @Transient
-  @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
   @Builder.Default
   private Double discountAllowed = 0.0;
+
+  @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+  private PriceDetails priceDetails;
 
   @Builder.Default
   @Column(nullable = false)
   private boolean isDeleted = false;
 
+  @JsonIgnore
   @ManyToOne
   @JoinColumn(name = "shop_id")
   private Shop shop;
 
+  @JsonProperty("quantity")
   public Double getQuantity() {
     return ObjectUtils.firstNonNull(this.priceDetails.getPrices(), new ArrayList<Price>()).stream()
         .mapToDouble(Price::getQuantityUnderThisPrice)
         .sum();
   }
 
-  public Price getActivePrice() {
-    return this.priceDetails.getPrices().stream()
-        .filter(p -> p.getStatus() == PriceStatus.ACTIVE)
-        .findFirst()
-        .orElse(null);
-  }
-
+  @JsonProperty("discountAllowed")
   public Double getDiscountAllowed() {
-    return getActivePrice().getDiscountAllowed();
+    return this.getPriceDetails().getDiscountAllowed();
   }
 
+  @JsonProperty("sellingPrice")
   public Double getSellingPrice() {
-    return getActivePrice().getSellingPrice();
+    return getPriceDetails().getSellingPrice();
   }
 
+  @JsonProperty("buyingPrice")
   public Double getBuyingPrice() {
-    return getActivePrice().getBuyingPrice();
+    return getPriceDetails().getBuyingPrice();
   }
 }

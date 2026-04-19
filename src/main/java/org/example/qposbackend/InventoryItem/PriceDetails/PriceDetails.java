@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 import lombok.*;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
@@ -30,7 +29,7 @@ public class PriceDetails {
   private Double fixedProfit;
 
   @JoinColumn
-  @OneToMany(cascade = CascadeType.ALL)
+  @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   private List<Price> prices;
 
   @Transient
@@ -46,21 +45,26 @@ public class PriceDetails {
   private Double discountAllowed;
 
   public Double getSellingPrice() {
-    Optional<Price> price =
-        prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
-    return price.orElse(this.prices.getLast()).getSellingPrice();
+    Price active = resolveActivePrice();
+    return active == null ? 0D : active.getSellingPrice();
   }
 
   public Double getBuyingPrice() {
-    Optional<Price> price =
-        prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
-    return price.orElse(this.prices.getLast()).getBuyingPrice();
+    Price active = resolveActivePrice();
+    return active == null ? 0D : active.getBuyingPrice();
   }
 
   public Double getDiscountAllowed() {
-    Optional<Price> price =
-        prices.stream().filter(p -> p.getStatus().equals(PriceStatus.ACTIVE)).findFirst();
-    return price.orElse(this.prices.getLast()).getDiscountAllowed();
+    Price active = resolveActivePrice();
+    return active == null ? 0D : active.getDiscountAllowed();
+  }
+
+  private Price resolveActivePrice() {
+    if (prices == null || prices.isEmpty()) return null;
+    return prices.stream()
+        .filter(p -> p.getStatus() == PriceStatus.ACTIVE)
+        .findFirst()
+        .orElseGet(() -> prices.get(prices.size() - 1));
   }
 
   public Double getTotalBuyingPrice(Double quantity) {
