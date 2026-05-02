@@ -53,6 +53,9 @@ public class ItemService {
   }
 
   public Item saveItem(Item item, Optional<MultipartFile> imageOpt) throws IOException {
+    // Ignore any client-supplied id so we always insert a new row; a copied/stale id would
+    // otherwise merge into another Item and tie the wrong image to this inventory entry.
+    item.setId(null);
     var subCategory = subCategoryRepository.findById(Long.parseLong(item.getSubCategory()));
     item.setSubCategoryId(subCategory.orElseThrow());
     item.setBarCode(
@@ -89,7 +92,7 @@ public class ItemService {
       MultipartFile file = imageOpt.get();
       if (!file.isEmpty()) {
         log.info("Image is not empty");
-        String fileName = saveImage(file, item.getId());
+        String fileName = saveImage(file, itemId);
         oldItem.setImageUrl(uploadPath + fileName);
       }
     }

@@ -73,22 +73,25 @@ public class OrderService {
     Shop shop = userShop.getShop();
     List<SaleOrder> orders = fetchByShopAndDateRange(shop, request.start(), request.end());
 
-    List<OrderItem> actualSales = new ArrayList<>();
-    List<OrderItem> returnedItems = new ArrayList<>();
+    List<OrderItemSaleContext> actualSales = new ArrayList<>();
+    List<OrderItemSaleContext> returnedItems = new ArrayList<>();
     double totalCash = 0, totalMpesa = 0, totalDebtors = 0, totalReturnedAmount = 0;
 
     for (SaleOrder order : orders) {
       double totalAmount = 0;
+      LocalDate saleDate =
+          Optional.ofNullable(order.getDate()).orElse(LocalDate.MIN);
+      Long orderId = order.getId();
 
       for (OrderItem item : order.getOrderItems()) {
         double effectiveDiscount = getEffectiveDiscount(item);
 
         if (item.getReturnInward() != null) {
           item.setQuantity((double) item.getReturnInward().getQuantityReturned());
-          returnedItems.add(item);
+          returnedItems.add(new OrderItemSaleContext(item, saleDate, orderId));
           totalReturnedAmount += item.getReturnInward().getQuantityReturned() * (item.getPrice() - effectiveDiscount);
         } else {
-          actualSales.add(item);
+          actualSales.add(new OrderItemSaleContext(item, saleDate, orderId));
           totalAmount += item.getQuantity() * (item.getPrice() - effectiveDiscount);
         }
       }
@@ -114,10 +117,14 @@ public class OrderService {
     if (productFilter != null && !productFilter.isBlank()) {
       String lower = productFilter.toLowerCase();
       actualSales = actualSales.stream()
-          .filter(item -> item.getInventoryItem().getItem().getName().toLowerCase().contains(lower))
+          .filter(
+              ctx ->
+                  ctx.orderItem().getInventoryItem().getItem().getName().toLowerCase().contains(lower))
           .collect(Collectors.toList());
       returnedItems = returnedItems.stream()
-          .filter(item -> item.getInventoryItem().getItem().getName().toLowerCase().contains(lower))
+          .filter(
+              ctx ->
+                  ctx.orderItem().getInventoryItem().getItem().getName().toLowerCase().contains(lower))
           .collect(Collectors.toList());
     }
 
@@ -138,30 +145,61 @@ public class OrderService {
     return (discountAllowed > 0 || hasOffers) ? item.getDiscount() : 0;
   }
 
-  private List<SalesItemSummary> consolidateItems(List<OrderItem> items) {
-    Map<Long, List<OrderItem>> grouped = items.stream()
-        .collect(Collectors.groupingBy(item -> item.getInventoryItem().getId()));
+  private List<SalesItemSummary> consolidateItems(List<OrderItemSaleContext> contexts) {
+    Map<Long, List<OrderItemSaleContext>> grouped =
+        contexts.stream()
+            .collect(
+                Collectors.groupingBy(ctx -> ctx.orderItem().getInventoryItem().getId()));
+
+    Comparator<OrderItemSaleContext> bySaleTime =
+        Comparator.comparing(OrderItemSaleContext::saleDate)
+            .thenComparing(OrderItemSaleContext::orderId);
 
     return grouped.values().stream()
-        .map(group -> {
-          OrderItem first = group.get(0);
-          double quantity = group.stream().mapToDouble(OrderItem::getQuantity).sum();
-          double price = first.getPrice();
-          double discount = group.stream().mapToDouble(this::getEffectiveDiscount).sum();
-          double total = group.stream()
-              .mapToDouble(item -> item.getQuantity() * (item.getPrice() - getEffectiveDiscount(item)))
-              .sum();
-          return new SalesItemSummary(
-              first.getInventoryItem().getId(),
-              first.getInventoryItem().getItem().getName(),
-              quantity,
-              price,
-              discount,
-              total
-          );
-        })
+        .map(
+            group -> {
+              OrderItemSaleContext earliest =
+                  group.stream().min(bySaleTime).orElseThrow();
+              return new GroupWithEarliest(earliest, group);
+            })
+        .sorted(
+            Comparator.comparing((GroupWithEarliest g) -> g.earliest().saleDate())
+                .thenComparing(g -> g.earliest().orderId()))
+        .map(
+            g -> {
+              OrderItem first = g.earliest().orderItem();
+              List<OrderItemSaleContext> group = g.all();
+              double quantity =
+                  group.stream().mapToDouble(ctx -> ctx.orderItem().getQuantity()).sum();
+              double price = first.getPrice();
+              double discount =
+                  group.stream()
+                      .mapToDouble(ctx -> getEffectiveDiscount(ctx.orderItem()))
+                      .sum();
+              double total =
+                  group.stream()
+                      .mapToDouble(
+                          ctx -> {
+                            OrderItem item = ctx.orderItem();
+                            return item.getQuantity()
+                                * (item.getPrice() - getEffectiveDiscount(item));
+                          })
+                      .sum();
+              return new SalesItemSummary(
+                  first.getInventoryItem().getId(),
+                  first.getInventoryItem().getItem().getName(),
+                  quantity,
+                  price,
+                  discount,
+                  total);
+            })
         .collect(Collectors.toList());
   }
+
+  /** Sale line with its parent order date/id so consolidated stats can be sorted by time. */
+  private record OrderItemSaleContext(OrderItem orderItem, LocalDate saleDate, Long orderId) {}
+
+  private record GroupWithEarliest(OrderItemSaleContext earliest, List<OrderItemSaleContext> all) {}
 
   public List<SaleOrder> fetchByShopAndDateRange(Shop shop, Date start, Date end) {
     List<SaleOrder> ordersWithinRange =

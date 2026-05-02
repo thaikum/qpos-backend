@@ -2,15 +2,14 @@ package org.example.qposbackend.Stock;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.util.Date;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.qposbackend.Stock.StockItem.StockItem;
 import org.example.qposbackend.shop.Shop;
-
-import java.util.Date;
-import java.util.List;
 
 @Entity
 @Data
@@ -35,7 +34,7 @@ public class Stock {
     @Column(nullable = false)
     private double otherCostsIncurred;
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn
     private List<StockItem> items;
 
