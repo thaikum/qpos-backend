@@ -3,6 +3,8 @@ package org.example.qposbackend.ControllerAdvice;
 import java.nio.file.AccessDeniedException;
 import java.util.NoSuchElementException;
 import org.example.qposbackend.DTOs.MessageResponse;
+import org.example.qposbackend.EOD.EodBalanceMismatchBody;
+import org.example.qposbackend.EOD.EodBalanceMismatchException;
 import org.example.qposbackend.Exceptions.EndOfDayException;
 import org.example.qposbackend.Exceptions.GenericExceptions;
 import org.example.qposbackend.Exceptions.GenericRuntimeException;
@@ -33,6 +35,16 @@ public class ResponseExceptionHandler {
   @ExceptionHandler({NotAcceptableException.class, EndOfDayException.class})
   public ResponseEntity<MessageResponse> handleNotAcceptableException(RuntimeException ex) {
     return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_ACCEPTABLE);
+  }
+
+  @ExceptionHandler(EodBalanceMismatchException.class)
+  public ResponseEntity<EodBalanceMismatchBody> handleEodBalanceMismatch(EodBalanceMismatchException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(
+        new EodBalanceMismatchBody(
+            "EOD balances do not match. Difference: Sh %.2f".formatted(Math.abs(ex.getDifference())),
+            ex.getExpectedTotal(),
+            ex.getDeclaredTotal(),
+            ex.getDifference()));
   }
 
   @ExceptionHandler(Exception.class)

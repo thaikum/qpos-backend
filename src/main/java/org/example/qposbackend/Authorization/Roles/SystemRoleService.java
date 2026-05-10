@@ -56,7 +56,8 @@ public class SystemRoleService {
                                   privilege.getDisplayName(),
                                   privilege.getCategory());
                             })
-                        .collect(Collectors.toList())))
+                        .collect(Collectors.toList()),
+                    role.getDefaultPage()))
         .collect(Collectors.toList());
   }
 }

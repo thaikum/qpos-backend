@@ -22,7 +22,7 @@ public class OwnerDrawTransactionHandler extends TransactionHandler{
 
     @Override
     public TransactionCategory getCategory() {
-        return TransactionCategory.OVERAGE;
+        return TransactionCategory.OWNERS_DRAW;
     }
 
     @Override

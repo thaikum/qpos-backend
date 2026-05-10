@@ -22,7 +22,6 @@ import org.example.qposbackend.Item.ItemRepository;
 import org.example.qposbackend.Item.ItemService;
 import org.example.qposbackend.Item.UnitsOfMeasure;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,9 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class InventoryItemService {
   private final QuantityAdjustmentService quantityAdjustmentService;
-
-  @Value("${files.resources}")
-  private String resourcesDir;
 
   private final InventoryItemRepository inventoryItemRepository;
   private final ItemService itemService;

@@ -15,7 +15,23 @@ public enum DefaultAccount {
   CUSTOMER_ADVANCES("CUSTOMER ADVANCES", AccountTypes.LIABILITY, "Tracks prepayments received from customers for orders yet to be fulfilled."),
   INVENTORY("INVENTORY", AccountTypes.ASSET, "Represents the total value of goods held in stock for resale."),
   COST_OF_GOODS("COST OF GOODS", AccountTypes.EXPENSE, "Records the direct costs associated with purchasing or producing sold items."),
-  ACCOUNTS_RECEIVABLE("ACCOUNTS RECEIVABLE", AccountTypes.ASSET, "Tracks outstanding amounts owed by customers for credit sales.");
+  ACCOUNTS_RECEIVABLE("ACCOUNTS RECEIVABLE", AccountTypes.ASSET, "Tracks outstanding amounts owed by customers for credit sales."),
+  OTHER_EXPENSES(
+      "OTHER EXPENSES",
+      AccountTypes.EXPENSE,
+      "Miscellaneous day-to-day costs when no separate expense account is needed."),
+  CASH_OVERAGE(
+      "CASH OVERAGE",
+      AccountTypes.INCOME,
+      "Unexplained extra cash counted (e.g. till over) until investigated."),
+  CASH_SHORTAGE(
+      "CASH SHORTAGE",
+      AccountTypes.EXPENSE,
+      "Unexplained missing cash (e.g. till short) until investigated."),
+  OWNER_DRAWINGS(
+      "OWNER DRAWINGS",
+      AccountTypes.EQUITY,
+      "Amounts the owner withdraws from the business for personal use.");
 
   private final String accountName;
   private final AccountTypes accountType;

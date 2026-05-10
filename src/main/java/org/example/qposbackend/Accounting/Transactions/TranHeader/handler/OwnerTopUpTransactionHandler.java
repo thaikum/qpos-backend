@@ -28,7 +28,7 @@ public class OwnerTopUpTransactionHandler extends TransactionHandler {
 
   @Override
   public TransactionCategory getCategory() {
-    return TransactionCategory.OVERAGE;
+    return TransactionCategory.OWNERS_CONTRIBUTION;
   }
 
   @Override

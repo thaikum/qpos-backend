@@ -129,14 +129,7 @@ public class EODService {
       double mpesaCost = totalMobileSale * 0.50 / 100 * 2;
 
       if (Math.abs(expectedTotal - totalReceivables) > mpesaCost) {
-        throw new NotAcceptableException(
-            """
-                                Transactions failed to balance. <br/>
-                                Expected: <b>Sh %.2f</b> <br/>
-                                Available: <b>Sh %.2f</b> <br/>
-                                Difference: <b>Sh %.2f</b> <br/>
-                                """
-                .formatted(expectedTotal, totalReceivables, expectedTotal - totalReceivables));
+        throw new EodBalanceMismatchException(expectedTotal, totalReceivables);
       }
     }
 

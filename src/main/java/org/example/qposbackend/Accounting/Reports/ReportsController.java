@@ -5,6 +5,8 @@ import net.sf.jasperreports.engine.JRException;
 import org.example.qposbackend.Accounting.Reports.Data.DateWithAccount;
 import org.example.qposbackend.Accounting.Reports.Data.DatesData;
 import org.example.qposbackend.Accounting.Reports.Data.NumberOfDaysData;
+import org.example.qposbackend.Accounting.Reports.Data.ProfitPerCategoryRow;
+import org.example.qposbackend.Accounting.Reports.Data.ProfitPerItemRow;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -18,15 +20,18 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 @RestController
 @Slf4j
 @RequestMapping("reports")
 public class ReportsController {
     private final ReportsService reportsService;
+    private final ProfitReportDataService profitReportDataService;
 
-    public ReportsController(ReportsService reportsService) {
+    public ReportsController(ReportsService reportsService, ProfitReportDataService profitReportDataService) {
         this.reportsService = reportsService;
+        this.profitReportDataService = profitReportDataService;
     }
 
     @PostMapping("profit_and_loss")
@@ -45,6 +50,28 @@ public class ReportsController {
     private ResponseEntity<Resource> generateRestockingReport(@RequestBody NumberOfDaysData numberOfDaysData) throws JRException, IOException, SQLException {
         byte[] reportContent = reportsService.generateRestockingReport(numberOfDaysData);
         return resourceBuilder(reportContent);
+    }
+
+    @PostMapping("profit_per_item")
+    private ResponseEntity<Resource> generateProfitPerItem(@RequestBody DatesData datesData) throws JRException, IOException, SQLException {
+        byte[] reportContent = reportsService.generateProfitPerItemReport(datesData);
+        return resourceBuilder(reportContent);
+    }
+
+    @PostMapping("profit_per_category")
+    private ResponseEntity<Resource> generateProfitPerCategory(@RequestBody DatesData datesData) throws JRException, IOException, SQLException {
+        byte[] reportContent = reportsService.generateProfitPerCategoryReport(datesData);
+        return resourceBuilder(reportContent);
+    }
+
+    @PostMapping("profit_per_item/data")
+    public ResponseEntity<List<ProfitPerItemRow>> getProfitPerItemData(@RequestBody DatesData datesData) {
+        return ResponseEntity.ok(profitReportDataService.getProfitPerItem(datesData));
+    }
+
+    @PostMapping("profit_per_category/data")
+    public ResponseEntity<List<ProfitPerCategoryRow>> getProfitPerCategoryData(@RequestBody DatesData datesData) {
+        return ResponseEntity.ok(profitReportDataService.getProfitPerCategory(datesData));
     }
 
 

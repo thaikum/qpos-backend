@@ -15,12 +15,13 @@ import org.example.qposbackend.Item.Item;
 import org.example.qposbackend.Item.ItemRepository;
 import org.example.qposbackend.Security.SpringSecurityAuditorAware;
 import org.example.qposbackend.Stock.StockItem.StockItem;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,9 +32,6 @@ public class StockService {
   private final StockRepository stockRepository;
   private final InventoryItemRepository inventoryItemRepository;
   private final ItemRepository itemRepository;
-
-  @Value("${files.resources}")
-  private String resources;
 
   private final SpringSecurityAuditorAware auditorAware;
 
@@ -172,8 +170,14 @@ public class StockService {
 
   //    @Bean
   private void loadCsv() throws IOException {
-    List<String> lines =
-        Files.readAllLines(Path.of(resources + "/initial/merged_price_mapping.csv"));
+    List<String> lines;
+    try (var reader =
+        new BufferedReader(
+            new InputStreamReader(
+                new ClassPathResource("initial/merged_price_mapping.csv").getInputStream(),
+                StandardCharsets.UTF_8))) {
+      lines = reader.lines().toList();
+    }
     List<StockItem> stockItems = new ArrayList<>();
 
     if (!this.stockRepository.findAll().isEmpty()) {

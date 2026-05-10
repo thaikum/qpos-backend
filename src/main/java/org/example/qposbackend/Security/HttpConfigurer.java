@@ -131,6 +131,11 @@ public class HttpConfigurer {
                     .requestMatchers(HttpMethod.POST, "transactions/by-range/{status}")
                     .hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
 
+                    .requestMatchers(HttpMethod.POST, "simple-transactions")
+                    .hasAuthority(PrivilegesEnum.POST_TRANSACTION.name())
+                    .requestMatchers(HttpMethod.GET, "simple-transactions")
+                    .hasAuthority(PrivilegesEnum.VIEW_TRANSACTIONS.name())
+
                     // ============================= USER ACTIVITY =====================
                     .requestMatchers(
                         "user-activity/{user-id}",
@@ -151,6 +156,14 @@ public class HttpConfigurer {
                     .hasAnyAuthority(PrivilegesEnum.VIEW_ACCOUNT_STATEMENT_REPORT.name())
                     .requestMatchers("reports/restocking_report")
                     .hasAnyAuthority(PrivilegesEnum.VIEW_RESTOCKING_ESTIMATES.name())
+                    .requestMatchers("reports/profit_per_item", "reports/profit_per_item/data")
+                    .hasAnyAuthority(PrivilegesEnum.VIEW_PROFIT_PER_ITEM_REPORT.name())
+                    .requestMatchers("reports/profit_per_category", "reports/profit_per_category/data")
+                    .hasAnyAuthority(PrivilegesEnum.VIEW_PROFIT_PER_CATEGORY_REPORT.name())
+
+                    //  ======================= DASHBOARD ==============================
+                    .requestMatchers("dashboard/**")
+                    .hasAnyAuthority(PrivilegesEnum.VIEW_DASHBOARD.name())
 
                     //  ======================== OFFERS =============================
                     .requestMatchers(HttpMethod.POST, "/offers")

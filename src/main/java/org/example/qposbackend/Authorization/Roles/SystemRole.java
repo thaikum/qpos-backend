@@ -22,12 +22,17 @@ public class SystemRole implements Cloneable{
     @ManyToMany(fetch = FetchType.EAGER)
     private Set<Privilege> privileges;
 
+    /** Default landing page after login: "pos" or "dashboard". Null means system default (pos). */
+    @Column(nullable = true)
+    private String defaultPage;
+
     @Override
     public SystemRole clone() {
         try {
             SystemRole clone = (SystemRole) super.clone();
 
             clone.setName(this.name);
+            clone.setDefaultPage(this.defaultPage);
 
             Set<Privilege> copiedPrivileges = new HashSet<>();
             for (Privilege privilege : this.privileges) {

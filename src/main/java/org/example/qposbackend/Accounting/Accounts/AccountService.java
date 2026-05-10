@@ -84,6 +84,44 @@ public class AccountService {
             .build();
     accounts.add(account);
 
+    // OTHER EXPENSES (misc / simple expense path)
+    account =
+        Account.builder()
+            .accountName("OTHER EXPENSES")
+            .accountNumber(String.format("%02d", AccountTypes.EXPENSE.ordinal()) + "002")
+            .accountType(AccountTypes.EXPENSE.name())
+            .description("Miscellaneous operating costs")
+            .build();
+    accounts.add(account);
+
+    // CASH OVERAGE / SHORTAGE — names match simple-transaction filters ("overage"/"shortage")
+    account =
+        Account.builder()
+            .accountName("CASH OVERAGE")
+            .accountNumber(String.format("%02d", AccountTypes.INCOME.ordinal()) + "002")
+            .accountType(AccountTypes.INCOME.name())
+            .description("Unexplained extra cash counted")
+            .build();
+    accounts.add(account);
+
+    account =
+        Account.builder()
+            .accountName("CASH SHORTAGE")
+            .accountNumber(String.format("%02d", AccountTypes.EXPENSE.ordinal()) + "003")
+            .accountType(AccountTypes.EXPENSE.name())
+            .description("Unexplained missing cash")
+            .build();
+    accounts.add(account);
+
+    account =
+        Account.builder()
+            .accountName("OWNER DRAWINGS")
+            .accountNumber(String.format("%02d", AccountTypes.EQUITY.ordinal()) + "001")
+            .accountType(AccountTypes.EQUITY.name())
+            .description("Owner withdrawals")
+            .build();
+    accounts.add(account);
+
     accountRepository.saveAll(accounts);
   }
 

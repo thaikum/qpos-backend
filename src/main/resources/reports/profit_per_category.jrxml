@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="profit_per_category" pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20"
+              uuid="118025bb-3f66-4da6-9b0f-6b6e7eb7e1e8">
+    <style name="Header" mode="Opaque" backcolor="#004269" forecolor="#FFFFFF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#FFFFFF"/>
+        </box>
+    </style>
+    <style name="Detail" mode="Opaque" backcolor="#FFFFFF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#CCCCCC"/>
+        </box>
+    </style>
+    <parameter name="startDate" class="java.util.Date"/>
+    <parameter name="endDate" class="java.util.Date"/>
+    <parameter name="shopId" class="java.lang.Long"/>
+    <queryString language="SQL">
+        <![CDATA[
+        SELECT
+            COALESCE(i.category, 'Uncategorized')                                         AS category,
+            SUM(oi.quantity)                                                               AS total_quantity,
+            ROUND(SUM(oi.price * oi.quantity), 2)                                          AS total_revenue,
+            ROUND(SUM(oi.buying_price * oi.quantity), 2)                                   AS total_cost,
+            ROUND(SUM((oi.price - oi.buying_price) * oi.quantity), 2)                     AS total_profit,
+            ROUND(100.0 * SUM((oi.price - oi.buying_price) * oi.quantity)
+                  / NULLIF(SUM(oi.price * oi.quantity), 0), 2)                            AS profit_margin,
+            s.name                                                                         AS shop_name,
+            s.tag_line                                                                     AS shop_tag_line
+        FROM order_item oi
+        JOIN inventory_item ii ON oi.inventory_item_id = ii.id
+        JOIN item i ON ii.item_id = i.id
+        JOIN sale_order so ON so.id = oi.order_items_id
+        CROSS JOIN (SELECT name, tag_line FROM shop WHERE id = $P{shopId}) s
+        WHERE so.shop_id = $P{shopId}
+          AND DATE(so.date) BETWEEN $P{startDate} AND $P{endDate}
+          AND oi.return_inward_id IS NULL
+        GROUP BY i.category, s.name, s.tag_line
+        ORDER BY total_profit DESC
+        ]]>
+    </queryString>
+    <field name="category" class="java.lang.String"/>
+    <field name="total_quantity" class="java.lang.Double"/>
+    <field name="total_revenue" class="java.lang.Double"/>
+    <field name="total_cost" class="java.lang.Double"/>
+    <field name="total_profit" class="java.lang.Double"/>
+    <field name="profit_margin" class="java.lang.Double"/>
+    <field name="shop_name" class="java.lang.String"/>
+    <field name="shop_tag_line" class="java.lang.String"/>
+    <variable name="sumRevenue" class="java.lang.Double" calculation="Sum">
+        <variableExpression><![CDATA[$F{total_revenue}]]></variableExpression>
+        <initialValueExpression><![CDATA[0.0]]></initialValueExpression>
+    </variable>
+    <variable name="sumCost" class="java.lang.Double" calculation="Sum">
+        <variableExpression><![CDATA[$F{total_cost}]]></variableExpression>
+        <initialValueExpression><![CDATA[0.0]]></initialValueExpression>
+    </variable>
+    <variable name="sumProfit" class="java.lang.Double" calculation="Sum">
+        <variableExpression><![CDATA[$F{total_profit}]]></variableExpression>
+        <initialValueExpression><![CDATA[0.0]]></initialValueExpression>
+    </variable>
+    <title>
+        <band height="75" splitType="Stretch">
+            <textField>
+                <reportElement x="0" y="0" width="300" height="30" uuid="d26dda92-8901-4a58-b372-ced7454f8805"/>
+                <textElement verticalAlignment="Bottom">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{shop_name} != null ? $F{shop_name}.toUpperCase() : ""]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="30" width="300" height="20" forecolor="#004269" uuid="15e1a035-3ca6-4c77-9fcb-1fe87a369014"/>
+                <textElement verticalAlignment="Top">
+                    <font size="10" isItalic="true" pdfFontName="Helvetica-Oblique"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{shop_tag_line} != null ? $F{shop_tag_line} : ""]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="0" y="55" width="555" height="20" uuid="b7382a91-4818-4107-b920-5d1883886821"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="13" isBold="true"/>
+                </textElement>
+                <text><![CDATA[PROFIT PER CATEGORY REPORT]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="301" y="0" width="254" height="30" uuid="0f5434cc-ee58-4bbc-8676-ef38eee6b0e7"/>
+                <textElement textAlignment="Right" verticalAlignment="Bottom">
+                    <font size="10"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Period: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{startDate}) + " \u2013 " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{endDate})]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+    <columnHeader>
+        <band height="25" splitType="Stretch">
+            <staticText>
+                <reportElement style="Header" x="0" y="0" width="180" height="25" uuid="a0d5b28a-9083-4019-bb59-e5d4044a636c"/>
+                <box leftPadding="4"/>
+                <textElement verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[CATEGORY]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Header" x="180" y="0" width="65" height="25" uuid="2beb97e3-e6b2-4fd1-8947-1c1e964d71ee"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[QTY SOLD]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Header" x="245" y="0" width="80" height="25" uuid="2f6cf739-987d-4e55-bca1-133c91fe7fb4"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[REVENUE]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Header" x="325" y="0" width="80" height="25" uuid="6fa401ce-203d-4485-ad39-d5d9ed752f16"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[COST]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Header" x="405" y="0" width="80" height="25" uuid="d31a8bdf-5e47-4668-a475-867cdb98c329"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[PROFIT]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Header" x="485" y="0" width="70" height="25" uuid="a67efb9a-83fb-414f-b45f-240eb626141f"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[MARGIN %]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="20" splitType="Stretch">
+            <textField>
+                <reportElement style="Detail" x="0" y="0" width="180" height="20" uuid="06155c3c-244a-42d3-9d42-44eec0621444"/>
+                <box leftPadding="4"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{category}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="180" y="0" width="65" height="20" uuid="0d173a0c-48cd-4ce5-9fb6-2762efe07ec1"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{total_quantity}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.##"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="245" y="0" width="80" height="20" uuid="9e8b0377-f180-41e4-b0fa-df4855aa1b9c"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{total_revenue}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="325" y="0" width="80" height="20" uuid="588c79bd-68cd-44c3-81a7-df354dfd3c69"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{total_cost}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="405" y="0" width="80" height="20" uuid="204bf31d-edbc-49e9-9ba0-fbc580b9699b"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{total_profit}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Detail" x="485" y="0" width="70" height="20" uuid="1e0b1253-0b28-49a1-82da-2a17aeb64d18"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{profit_margin}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+        </band>
+    </detail>
+    <summary>
+        <band height="30" splitType="Stretch">
+            <staticText>
+                <reportElement style="Header" x="0" y="0" width="245" height="30" uuid="2f6cf739-987d-4e55-bca1-133c91fe7fb5"/>
+                <box leftPadding="4"/>
+                <textElement verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <text><![CDATA[TOTALS]]></text>
+            </staticText>
+            <textField>
+                <reportElement style="Header" x="245" y="0" width="80" height="30" uuid="6fa401ce-203d-4485-ad39-d5d9ed752f17"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{sumRevenue}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Header" x="325" y="0" width="80" height="30" uuid="d31a8bdf-5e47-4668-a475-867cdb98c330"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{sumCost}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+            <textField>
+                <reportElement style="Header" x="405" y="0" width="150" height="30" uuid="a67efb9a-83fb-414f-b45f-240eb626141e"/>
+                <box rightPadding="4"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font size="10" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$V{sumProfit}]]></textFieldExpression>
+                <patternExpression><![CDATA["#,##0.00"]]></patternExpression>
+            </textField>
+        </band>
+    </summary>
+</jasperReport>
