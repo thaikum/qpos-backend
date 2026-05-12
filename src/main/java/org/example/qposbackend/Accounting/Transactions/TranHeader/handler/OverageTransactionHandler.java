@@ -1,5 +1,7 @@
 package org.example.qposbackend.Accounting.Transactions.TranHeader.handler;
 
+import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.CREDIT;
+
 import lombok.Getter;
 import lombok.Setter;
 import org.example.qposbackend.Accounting.Transactions.PartTran.PartTranService;
@@ -10,9 +12,6 @@ import org.example.qposbackend.Accounting.Transactions.TranHeader.data.handlerTr
 import org.example.qposbackend.Accounting.shopAccount.ShopAccountService;
 import org.example.qposbackend.Authorization.AuthUtils.AuthUserShopProvider;
 import org.springframework.stereotype.Service;
-
-import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.CREDIT;
-import static org.example.qposbackend.Accounting.Transactions.TranHeader.TranType.DEBIT;
 
 @Getter
 @Setter
@@ -32,6 +31,6 @@ public class OverageTransactionHandler extends TransactionHandler {
 
   @Override
   public char getPrimaryTranType() {
-    return DEBIT;
+    return CREDIT;
   }
 }

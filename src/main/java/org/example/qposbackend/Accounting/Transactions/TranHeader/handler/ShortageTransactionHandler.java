@@ -30,6 +30,6 @@ public class ShortageTransactionHandler extends TransactionHandler{
 
     @Override
     public char getPrimaryTranType() {
-        return CREDIT;
+        return DEBIT;
     }
 }
